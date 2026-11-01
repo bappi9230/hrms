@@ -14,6 +14,10 @@ info:
         version: '@info.app.version@'
         grailsVersion: '@info.app.grailsVersion@'
 spring:
+    servlet:
+        multipart:
+            max-file-size: 2MB
+            max-request-size: 3MB
     jmx:
         unique-names: true
     main:
@@ -123,3 +127,36 @@ environments:
         dataSource:
             dbCreate: none
             url: jdbc:h2:./prodDb;LOCK_TIMEOUT=10000;DB_CLOSE_ON_EXIT=FALSE
+
+---
+# ---------------------------------------------------------------
+# Day 1: Spring Security
+# ---------------------------------------------------------------
+grails:
+    plugin:
+        springsecurity:
+            userLookup:
+                userDomainClassName: hrms.User
+                authorityJoinClassName: hrms.UserRole
+            authority:
+                className: hrms.Role
+            auth:
+                loginFormUrl: /auth/login
+            failureHandler:
+                defaultFailureUrl: /auth/login?login_error=1
+            successHandler:
+                defaultTargetUrl: /
+            adh:
+                errorPage: /auth/denied
+            logout:
+                postOnly: false
+                afterLogoutUrl: /auth/login
+            controllerAnnotations:
+                staticRules:
+                    - { pattern: '/assets/**',     access: ['permitAll'] }
+                    - { pattern: '/**/favicon.ico', access: ['permitAll'] }
+                    - { pattern: '/error',          access: ['permitAll'] }
+                    - { pattern: '/notFound',       access: ['permitAll'] }
+                    - { pattern: '/login/**',       access: ['permitAll'] }
+                    - { pattern: '/logoff',         access: ['permitAll'] }
+                    - { pattern: '/actuator/**',    access: ['ROLE_ADMIN'] }

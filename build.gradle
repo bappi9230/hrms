@@ -60,6 +60,8 @@ dependencies {
     implementation "org.apache.grails:grails-scaffolding"
     implementation "org.apache.grails:grails-data-hibernate5"
     implementation "org.apache.grails:grails-gsp"
+    // Day 1: Spring Security (login, roles). Version is managed by the Grails BOM.
+    implementation "org.apache.grails:grails-spring-security"
     integrationTestImplementation testFixtures("org.apache.grails:grails-geb")
     profile "org.apache.grails.profiles:web"
     runtimeOnly "org.fusesource.jansi:jansi"

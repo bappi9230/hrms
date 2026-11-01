@@ -1,0 +1,219 @@
+/* HRMS theme - colours from the GUI plan */
+
+:root {
+    --hrms-primary: #1F3864;
+    --hrms-accent: #2E75B6;
+    --hrms-bg: #F4F6FA;
+    --hrms-sidebar-w: 250px;
+    --bs-font-sans-serif: 'Noto Sans Bengali', 'Inter', 'Segoe UI', 'Nirmala UI', system-ui, -apple-system, sans-serif;
+}
+
+body {
+    background: var(--hrms-bg);
+    font-family: var(--bs-font-sans-serif);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+.hrms-topbar {
+    background: var(--hrms-primary);
+    box-shadow: 0 1px 4px rgba(0, 0, 0, .2);
+    z-index: 1030;
+}
+
+.hrms-topbar .navbar-brand {
+    font-weight: 700;
+    letter-spacing: .5px;
+}
+
+.hrms-shell {
+    display: flex;
+    flex: 1;
+    min-height: 0;
+}
+
+.hrms-sidebar {
+    background: #fff;
+    width: var(--hrms-sidebar-w);
+    border-right: 1px solid #dde3ee;
+}
+
+@media (min-width: 992px) {
+    .hrms-sidebar {
+        flex: 0 0 var(--hrms-sidebar-w);
+        position: sticky;
+        top: 56px;
+        height: calc(100vh - 56px);
+        overflow-y: auto;
+    }
+}
+
+.hrms-sidebar .nav-link {
+    color: #33405c;
+    padding: .55rem 1rem;
+    border-left: 3px solid transparent;
+    display: flex;
+    align-items: center;
+    gap: .6rem;
+}
+
+.hrms-sidebar .nav-link:hover {
+    background: #eef3fb;
+}
+
+.hrms-sidebar .nav-link.active {
+    background: #e3edf9;
+    color: var(--hrms-primary);
+    font-weight: 600;
+    border-left-color: var(--hrms-accent);
+}
+
+.hrms-sidebar .nav-link.soon {
+    color: #9aa5b8;
+    cursor: default;
+}
+
+.hrms-sidebar .nav-link.soon .badge {
+    margin-left: auto;
+    font-weight: 400;
+}
+
+.hrms-sidebar .menu-heading {
+    font-size: .72rem;
+    text-transform: uppercase;
+    letter-spacing: .08em;
+    color: #8793a9;
+    padding: .9rem 1rem .25rem;
+}
+
+.hrms-main {
+    flex: 1;
+    min-width: 0;
+    padding: 1.25rem;
+}
+
+.hrms-subnav {
+    background: #fff;
+    border-bottom: 1px solid #dde3ee;
+    padding: .25rem 1rem;
+}
+
+.hrms-footer {
+    background: #fff;
+    border-top: 1px solid #dde3ee;
+    padding: .6rem 1rem;
+    font-size: .85rem;
+    color: #6b7690;
+}
+
+.page-title {
+    color: var(--hrms-primary);
+    font-weight: 700;
+    font-size: 1.4rem;
+    margin-bottom: 1rem;
+}
+
+.stat-card {
+    border: 0;
+    border-left: 4px solid var(--hrms-accent);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, .08);
+}
+
+.stat-card .stat-value {
+    font-size: 1.9rem;
+    font-weight: 700;
+    color: var(--hrms-primary);
+    line-height: 1.1;
+}
+
+.stat-card.success {
+    border-left-color: #198754;
+}
+
+.stat-card.warning {
+    border-left-color: #ffc107;
+}
+
+.stat-card.danger {
+    border-left-color: #dc3545;
+}
+
+.btn-primary {
+    background: var(--hrms-accent);
+    border-color: var(--hrms-accent);
+}
+
+.btn-primary:hover {
+    background: var(--hrms-primary);
+    border-color: var(--hrms-primary);
+}
+
+.avatar {
+    border-radius: 50%;
+    object-fit: cover;
+    background: var(--hrms-accent);
+    color: #fff;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+}
+
+.avatar-sm {
+    width: 36px;
+    height: 36px;
+    font-size: .85rem;
+}
+
+.avatar-xl {
+    width: 140px;
+    height: 140px;
+    font-size: 2.6rem;
+}
+
+.profile-list dt {
+    color: #6b7690;
+    font-weight: 500;
+}
+
+.profile-list dd {
+    margin-bottom: .7rem;
+}
+
+.auth-body {
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, var(--hrms-primary), var(--hrms-accent));
+}
+
+.auth-card {
+    width: 100%;
+    max-width: 420px;
+    border: 0;
+    border-radius: .75rem;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, .25);
+}
+
+.auth-brand {
+    color: var(--hrms-primary);
+    font-weight: 800;
+    font-size: 1.8rem;
+}
+
+.toast-container {
+    z-index: 2000;
+}
+
+.hrms-main .message {
+    background: #e3f2e8;
+    border-left: 4px solid #198754;
+    padding: .6rem 1rem;
+    margin-bottom: 1rem;
+}
+
+.hrms-main ol.property-list,
+.hrms-main ul.property-list {
+    padding-left: 0;
+    list-style: none;
+}
