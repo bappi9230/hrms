@@ -3,8 +3,8 @@ package hrms
 import grails.plugin.springsecurity.annotation.Secured
 
 /**
- * মাস্টার ডেটার সাধারণ CRUD: শাখা, গ্রেড, কস্ট সেন্টার।
- * URL: /master/branch, /master/grade, /master/costcenter (UrlMappings এ আছে)।
+ * মাস্টার ডেটার সাধারণ CRUD: শাখা, গ্রেড, কস্ট সেন্টার, শিফট।
+ * URL: /master/branch, /master/grade, /master/costcenter, /master/shift (UrlMappings এ আছে)।
  * Day 3 এ shift/holiday যোগ করতে শুধু TYPES এ নতুন লাইন দিলেই হবে।
  */
 @Secured(['ROLE_ADMIN', 'ROLE_HR'])
@@ -24,7 +24,14 @@ class MasterController {
                 [name: 'maxSalary', label: 'সর্বোচ্চ বেতন', number: true]]],
         costcenter: [clazz: CostCenter, title: 'কস্ট সেন্টার', prop: 'costCenter', order: 'code', fields: [
                 [name: 'code', label: 'কোড', required: true],
-                [name: 'name', label: 'নাম', required: true]]]
+                [name: 'name', label: 'নাম', required: true]]],
+        shift     : [clazz: Shift, title: 'শিফট', prop: 'shift', order: 'startTime', fields: [
+                [name: 'name', label: 'শিফটের নাম', required: true],
+                [name: 'startTime', label: 'শুরু', required: true, time: true],
+                [name: 'endTime', label: 'শেষ', required: true, time: true],
+                [name: 'graceMinutes', label: 'গ্রেস টাইম (মিনিট)', required: true, number: true],
+                [name: 'earlyOutMinutes', label: 'আর্লি-আউট সীমা (মিনিট)', required: true, number: true]],
+                usedBy: { Shift s -> Attendance.countByShift(s) }, usedLabel: 'উপস্থিতির রেকর্ডে']
     ]
 
     def index() {
@@ -80,11 +87,12 @@ class MasterController {
         def obj = id ? cfg.clazz.get(id) : null
         if (!obj) { notFound(cfg); return }
 
-        // কোনো কর্মী এটি ব্যবহার করলে মোছা যাবে না
+        // কোথাও ব্যবহৃত হলে মোছা যাবে না
         String prop = cfg.prop
-        long used = Employee.createCriteria().count { eq(prop, obj) }
+        long used = cfg.usedBy ? (cfg.usedBy as Closure).call(obj) as long : Employee.createCriteria().count { eq(prop, obj) }
         if (used > 0) {
-            flash.error = "এই ${cfg.title} ${used} জন কর্মীর প্রোফাইলে ব্যবহৃত, তাই মোছা যাবে না।".toString()
+            String where = cfg.usedLabel ?: 'কর্মীর প্রোফাইলে'
+            flash.error = "এই ${cfg.title} ${used}টি ${where} ব্যবহৃত, তাই মোছা যাবে না।".toString()
             redirect(action: 'index', params: [type: params.type])
             return
         }

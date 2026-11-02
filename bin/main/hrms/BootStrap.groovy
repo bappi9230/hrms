@@ -1,6 +1,7 @@
 package hrms
 
 import java.time.LocalDate
+import java.time.LocalTime
 
 class BootStrap {
 
@@ -14,6 +15,7 @@ class BootStrap {
             seedOrganization()
             seedStructure()
             seedSecurity()
+            seedAttendance()
         }
     }
 
@@ -105,6 +107,35 @@ class BootStrap {
                 new EmployeeDocument(employee: rahim, docType: 'CONTRACT', title: 'Employment Contract (sample)',
                         fileName: 'contract-sample.txt', contentType: 'text/plain', fileSize: (long) bytes.length,
                         fileData: bytes, expiryDate: LocalDate.now().plusDays(20), uploadedBy: 'system').save(failOnError: true)
+            }
+        }
+    }
+
+    /** Day 3: নমুনা শিফট ও গত কয়েক দিনের উপস্থিতি (টেস্টের সুবিধার জন্য) */
+    private void seedAttendance() {
+        if (Shift.count() == 0) {
+            new Shift(name: 'সাধারণ শিফট', startTime: LocalTime.of(9, 0), endTime: LocalTime.of(18, 0),
+                    graceMinutes: 10, earlyOutMinutes: 15).save(failOnError: true)
+        }
+
+        if (Attendance.count() == 0) {
+            Shift shift = Shift.list(sort: 'id', max: 1)[0]
+            Employee rahim = Employee.findByEmail('rahim@example.com')
+            if (shift && rahim) {
+                // গত ৪টি কর্মদিবস (শুক্রবার বাদ): একদিন দেরিতে আসা
+                int made = 0
+                int back = 1
+                while (made < 4) {
+                    LocalDate d = LocalDate.now().minusDays(back++)
+                    if (d.dayOfWeek == java.time.DayOfWeek.FRIDAY) continue
+                    boolean late = (made == 1)
+                    new Attendance(employee: rahim, attDate: d, shift: shift, source: 'MANUAL',
+                            status: late ? 'LATE' : 'PRESENT',
+                            checkIn: late ? LocalTime.of(9, 35) : LocalTime.of(8, 55),
+                            checkOut: LocalTime.of(18, 5),
+                            lateMinutes: late ? 35 : 0).save(failOnError: true)
+                    made++
+                }
             }
         }
     }

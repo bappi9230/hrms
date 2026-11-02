@@ -21,7 +21,7 @@
             <g:each in="${cfg.fields}" var="f">
                 <div class="mb-3">
                     <label for="${f.name}" class="form-label">${f.label}<g:if test="${f.required}"> <span class="text-danger">*</span></g:if></label>
-                    <input type="${f.number ? 'number' : 'text'}" id="${f.name}" name="${f.name}" value="${instance[f.name]}"
+                    <input type="${f.number ? 'number' : (f.time ? 'time' : 'text')}" id="${f.name}" name="${f.name}" value="${instance[f.name]}"
                            class="form-control ${instance.errors.hasFieldErrors(f.name) ? 'is-invalid' : ''}"
                            <g:if test="${f.number}">min="0" step="any"</g:if>
                            <g:if test="${f.required}">required</g:if>>
