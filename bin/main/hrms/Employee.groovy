@@ -27,6 +27,12 @@ class Employee {
     String emergencyContactRelation
     String employeeType = 'FULL_TIME'
 
+    // Day 2: সাংগঠনিক কাঠামো
+    Branch branch
+    Grade grade
+    CostCenter costCenter
+    Employee reportingManager
+
     byte[] photo
     String photoContentType
     boolean hasPhoto = false          // so lists never need to load the photo bytes
@@ -56,6 +62,24 @@ class Employee {
         emergencyContactPhone nullable: true, maxSize: 20
         emergencyContactRelation nullable: true, maxSize: 50
         employeeType inList: TYPES
+
+        branch nullable: true
+        grade nullable: true
+        costCenter nullable: true
+        reportingManager nullable: true, validator: { Employee mgr, Employee emp ->
+            if (mgr == null) return true
+            // নিজেই নিজের ম্যানেজার হতে পারবে না
+            if (emp.id != null && mgr.id == emp.id) return ['employee.reportingManager.self']
+            // উপরের দিকে হেঁটে দেখা: ঘুরে এসে এই কর্মীর কাছেই পৌঁছালে চক্র তৈরি হবে
+            Set<Long> seen = [] as Set<Long>
+            Employee cur = mgr
+            while (cur != null) {
+                if (emp.id != null && cur.id == emp.id) return ['employee.reportingManager.cycle']
+                if (!seen.add(cur.id)) break
+                cur = cur.reportingManager
+            }
+            true
+        }
 
         photo nullable: true, maxSize: PHOTO_MAX_BYTES
         photoContentType nullable: true, maxSize: 50

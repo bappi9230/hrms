@@ -16,8 +16,8 @@
     </div>
     <div class="col-6 col-lg-3">
         <div class="card stat-card success"><div class="card-body">
-            <div class="text-muted small">সক্রিয়</div>
-            <div class="stat-value">${activeCount}</div>
+            <div class="text-muted small">আজ উপস্থিত</div>
+            <div class="stat-value">${presentToday}</div>
         </div></div>
     </div>
     <div class="col-6 col-lg-3">
@@ -51,6 +51,28 @@
             </div>
         </div>
     </div>
+    <g:if test="${expiring}">
+        <div class="col-12">
+            <div class="card border-warning">
+                <div class="card-header bg-white fw-semibold"><i class="bi bi-exclamation-triangle text-warning"></i> নথির মেয়াদ শেষ হচ্ছে / হয়ে গেছে</div>
+                <ul class="list-group list-group-flush">
+                    <g:each in="${expiring}" var="d">
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <span>
+                                <g:link controller="employee" action="show" id="${d.employee.id}" fragment="tab-documents" class="fw-semibold text-decoration-none">${d.employee.name}</g:link>
+                                &middot; ${d.title}
+                            </span>
+                            <span>
+                                <hrms:date value="${d.expiryDate}"/>
+                                <g:if test="${d.expiryStatus == 'EXPIRED'}"><span class="badge text-bg-danger">মেয়াদোত্তীর্ণ</span></g:if>
+                                <g:else><span class="badge text-bg-warning text-dark">শিগগির শেষ</span></g:else>
+                            </span>
+                        </li>
+                    </g:each>
+                </ul>
+            </div>
+        </div>
+    </g:if>
     <div class="col-lg-6">
         <div class="card h-100">
             <div class="card-header bg-white fw-semibold">সাম্প্রতিক যোগদান</div>

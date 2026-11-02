@@ -5,12 +5,14 @@ import java.time.LocalDate
 class BootStrap {
 
     UserService userService
+    EmploymentService employmentService
 
     static final String DEMO_PASSWORD = 'Hrms@2026'
 
     def init = { servletContext ->
         Employee.withTransaction {
             seedOrganization()
+            seedStructure()
             seedSecurity()
         }
     }
@@ -56,6 +58,55 @@ class BootStrap {
                 presentAddress: 'Mohammadpur, Dhaka', permanentAddress: 'Rajshahi Sadar, Rajshahi',
                 emergencyContactName: 'Jahangir Alam', emergencyContactPhone: '01644000004',
                 emergencyContactRelation: 'Brother', employeeType: 'PROBATION').save(failOnError: true)
+    }
+
+    /** Day 2: শাখা, গ্রেড, কস্ট সেন্টার, রিপোর্টিং ম্যানেজার, চাকরির ইতিহাস ও নমুনা নথি (আগের ডেটা থাকলেও কাজ করে) */
+    private void seedStructure() {
+        if (Branch.count() == 0) {
+            def head = new Branch(name: 'Head Office', address: 'Motijheel, Dhaka', phone: '029000001').save(failOnError: true)
+            def ctg  = new Branch(name: 'Chattogram Branch', address: 'Agrabad, Chattogram', phone: '0312000002').save(failOnError: true)
+
+            def g1 = new Grade(name: 'G1', gradeLevel: 1, minSalary: 25000, maxSalary: 40000).save(failOnError: true)
+            def g2 = new Grade(name: 'G2', gradeLevel: 2, minSalary: 40000, maxSalary: 65000).save(failOnError: true)
+            def g3 = new Grade(name: 'G3', gradeLevel: 3, minSalary: 65000, maxSalary: 120000).save(failOnError: true)
+
+            def ccTech = new CostCenter(code: 'CC-100', name: 'Technology').save(failOnError: true)
+            def ccHr   = new CostCenter(code: 'CC-200', name: 'Human Resources').save(failOnError: true)
+            def ccFin  = new CostCenter(code: 'CC-300', name: 'Finance').save(failOnError: true)
+
+            Employee karim   = Employee.findByEmail('karim@example.com')
+            Employee rahim   = Employee.findByEmail('rahim@example.com')
+            Employee sumaiya = Employee.findByEmail('sumaiya@example.com')
+            Employee nasrin  = Employee.findByEmail('nasrin@example.com')
+
+            // [কর্মী, শাখা, গ্রেড, কস্ট সেন্টার, ম্যানেজার]
+            [[karim, head, g3, ccTech, null],
+             [rahim, head, g2, ccTech, karim],
+             [sumaiya, head, g1, ccFin, karim],
+             [nasrin, ctg, g1, ccHr, karim]].each { row ->
+                Employee e = row[0] as Employee
+                if (e) {
+                    e.branch = row[1] as Branch
+                    e.grade = row[2] as Grade
+                    e.costCenter = row[3] as CostCenter
+                    e.reportingManager = row[4] as Employee
+                    e.save(failOnError: true)
+                }
+            }
+        }
+
+        if (EmploymentHistory.count() == 0) {
+            Employee.list().each { Employee e -> employmentService.logJoined(e, 'system') }
+
+            // নমুনা নথি: ড্যাশবোর্ডের "মেয়াদ শেষ হচ্ছে" তালিকা দেখার জন্য
+            Employee rahim = Employee.findByEmail('rahim@example.com')
+            if (rahim) {
+                byte[] bytes = 'Sample contract (demo data)'.getBytes('UTF-8')
+                new EmployeeDocument(employee: rahim, docType: 'CONTRACT', title: 'Employment Contract (sample)',
+                        fileName: 'contract-sample.txt', contentType: 'text/plain', fileSize: (long) bytes.length,
+                        fileData: bytes, expiryDate: LocalDate.now().plusDays(20), uploadedBy: 'system').save(failOnError: true)
+            }
+        }
     }
 
     private void seedSecurity() {

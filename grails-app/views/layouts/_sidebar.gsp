@@ -13,6 +13,8 @@
         <g:render template="/layouts/menuItem" model="[label: 'কর্মী', icon: 'bi-people', controller: 'employee']"/>
     </sec:ifAnyGranted>
 
+    <g:render template="/layouts/menuItem" model="[label: 'অর্গ চার্ট', icon: 'bi-diagram-2', controller: 'orgChart']"/>
+
     <g:render template="/layouts/menuItem" model="[label: 'উপস্থিতি', icon: 'bi-calendar-check', controller: 'attendance', soon: 3]"/>
     <g:render template="/layouts/menuItem" model="[label: 'ছুটি', icon: 'bi-airplane', controller: 'leave', soon: 4]"/>
 
@@ -52,6 +54,9 @@
         <li class="menu-heading">সেটিংস</li>
         <g:render template="/layouts/menuItem" model="[label: 'বিভাগ', icon: 'bi-diagram-3', controller: 'department']"/>
         <g:render template="/layouts/menuItem" model="[label: 'পদবি', icon: 'bi-award', controller: 'designation']"/>
+        <g:render template="/layouts/menuItem" model="[label: 'শাখা', icon: 'bi-building', controller: 'master', linkParams: [type: 'branch']]"/>
+        <g:render template="/layouts/menuItem" model="[label: 'গ্রেড', icon: 'bi-layers', controller: 'master', linkParams: [type: 'grade']]"/>
+        <g:render template="/layouts/menuItem" model="[label: 'কস্ট সেন্টার', icon: 'bi-piggy-bank', controller: 'master', linkParams: [type: 'costcenter']]"/>
     </sec:ifAnyGranted>
 
 </ul>

@@ -32,6 +32,18 @@ class HrmsTagLib {
         }
     }
 
+    /** ফাইলের সাইজ: KB / MB */
+    def fileSize = { attrs ->
+        Long bytes = attrs.value as Long
+        if (bytes == null) {
+            out << '—'
+        } else if (bytes < 1024 * 1024) {
+            out << Math.max(1L, (long) (bytes / 1024)) << ' KB'
+        } else {
+            out << String.format('%.1f MB', bytes / (1024.0d * 1024.0d))
+        }
+    }
+
     def statusBadge = { attrs ->
         String status = attrs.status as String
         String css = [ACTIVE: 'success', ON_LEAVE: 'warning text-dark', INACTIVE: 'secondary'].get(status, 'light text-dark')

@@ -65,6 +65,29 @@
             </div>
             <g:render template="field" model="[bean: employee, name: 'joinDate', label: 'যোগদানের তারিখ', type: 'date', required: true]"/>
             <g:render template="field" model="[bean: employee, name: 'salary', label: 'বেতন (৳)', type: 'number', required: true]"/>
+
+            <div class="col-md-6">
+                <label for="branch.id" class="form-label">শাখা</label>
+                <g:select name="branch.id" id="branch.id" from="${branches}" optionKey="id" value="${employee.branch?.id}"
+                          noSelection="['': '-- নির্বাচন করুন --']" class="form-select"/>
+            </div>
+            <div class="col-md-6">
+                <label for="grade.id" class="form-label">গ্রেড</label>
+                <g:select name="grade.id" id="grade.id" from="${grades}" optionKey="id" value="${employee.grade?.id}"
+                          noSelection="['': '-- নির্বাচন করুন --']" class="form-select"/>
+            </div>
+            <div class="col-md-6">
+                <label for="costCenter.id" class="form-label">কস্ট সেন্টার</label>
+                <g:select name="costCenter.id" id="costCenter.id" from="${costCenters}" optionKey="id" value="${employee.costCenter?.id}"
+                          noSelection="['': '-- নির্বাচন করুন --']" class="form-select"/>
+            </div>
+            <div class="col-md-6">
+                <label for="reportingManager.id" class="form-label">রিপোর্টিং ম্যানেজার</label>
+                <g:select name="reportingManager.id" id="reportingManager.id"
+                          from="${managers.findAll { it.id != employee.id }}" optionKey="id" value="${employee.reportingManager?.id}"
+                          noSelection="['': '-- কেউ নেই --']"
+                          class="form-select ${employee.errors.hasFieldErrors('reportingManager') ? 'is-invalid' : ''}"/>
+            </div>
         </div>
     </div>
 </div>

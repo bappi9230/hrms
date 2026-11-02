@@ -81,7 +81,8 @@ class EmployeeController {
         if (!employee) { notFound(); return }
         if (!accessService.canView(employee)) { redirect(controller: 'auth', action: 'denied'); return }
 
-        List documents = EmployeeDocument.createCriteria().list {
+        boolean canSeeDocs = accessService.isHrAdmin() || accessService.currentEmployee()?.id == employee.id
+        List documents = !canSeeDocs ? [] : EmployeeDocument.createCriteria().list {
             projections {
                 property('id'); property('docType'); property('title'); property('fileName')
                 property('fileSize'); property('expiryDate'); property('uploadedBy'); property('dateCreated')
@@ -99,6 +100,7 @@ class EmployeeController {
             canSeeSalary: accessService.canSeeSalary(employee),
             canEdit     : canEdit,
             documents   : documents,
+            canSeeDocs  : canSeeDocs,
             history     : EmploymentHistory.findAllByEmployee(employee, [sort: 'effectiveDate', order: 'desc']),
             attendance  : attendanceService.monthSummary(employee, YearMonth.now()),
             docTypes    : EmployeeDocument.TYPES,
@@ -192,13 +194,7 @@ class EmployeeController {
             return
         }
         String name = employee.name
-        EmployeeDocument.where { employee == employee }.deleteAll()
-        EmploymentHistory.where { employee == employee }.deleteAll()
-        Attendance.where { employee == employee }.deleteAll()
-        OvertimeRequest.where { employee == employee }.deleteAll()
-        RegularizationRequest.where { employee == employee }.deleteAll()
-        Roster.where { employee == employee }.deleteAll()
-        employee.delete(flush: true)
+        employmentService.deleteEmployee(employee)
         flash.success = "কর্মী '${name}' মুছে ফেলা হয়েছে।".toString()
         redirect(action: 'index')
     }
