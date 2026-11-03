@@ -14,6 +14,7 @@
     </div>
     <div class="d-flex gap-2">
         <g:link action="payslip" id="${line.id}" class="btn btn-outline-primary"><i class="bi bi-file-earmark-text"></i> পে-স্লিপ</g:link>
+        <g:link action="payslipPdf" id="${line.id}" target="_blank" class="btn btn-outline-primary"><i class="bi bi-file-earmark-pdf"></i> PDF</g:link>
         <g:link action="show" id="${run.id}" class="btn btn-outline-secondary"><i class="bi bi-arrow-left"></i> বেতন শিট</g:link>
     </div>
 </div>
@@ -73,6 +74,23 @@
                     <div class="col-4"><div class="fs-4 fw-bold text-danger">${line.absentDays}</div><div class="small text-muted">অনুপস্থিত</div></div>
                 </div>
                 <div class="small text-muted mt-3">কাঠামোর পূর্ণ মাসের gross: <hrms:money value="${line.structureGross}"/></div>
+            </div>
+        </div>
+
+        <div class="card mb-3">
+            <div class="card-header bg-white fw-semibold">PF, কর ও অন্যান্য (Day 6)</div>
+            <table class="table table-sm mb-0">
+                <tbody>
+                <tr><td>কর্মীর PF (কাটা হয়েছে)</td><td class="text-end"><hrms:money value="${line.pfEmployee}"/></td></tr>
+                <tr><td>কোম্পানির PF অংশ <span class="small text-muted">(কাটা হয় না)</span></td><td class="text-end"><hrms:money value="${line.pfEmployer}"/></td></tr>
+                <tr><td>আয়কর (TDS)</td><td class="text-end"><hrms:money value="${line.tds}"/></td></tr>
+                <tr><td>ঋণ/অগ্রিমের কিস্তি</td><td class="text-end"><hrms:money value="${line.loanDeduction}"/></td></tr>
+                <tr><td>বোনাস</td><td class="text-end"><hrms:money value="${line.bonus}"/></td></tr>
+                <tr><td>গ্র্যাচুইটি প্রভিশন <span class="small text-muted">(কাটা হয় না)</span></td><td class="text-end"><hrms:money value="${line.gratuityProvision}"/></td></tr>
+                </tbody>
+            </table>
+            <div class="card-body pt-2">
+                <g:if test="${line.emailedAt}"><div class="small text-muted">পে-স্লিপ ইমেইল: ${line.emailedTo} (${line.emailedAt.toString().replace('T', ' ').take(16)})</div></g:if>
             </div>
         </div>
 

@@ -91,6 +91,15 @@ class HrmsTagLib {
         out << (status == 'FINALIZED' ? '<span class="badge text-bg-success">চূড়ান্ত</span>' : '<span class="badge text-bg-warning text-dark">খসড়া (DRAFT)</span>')
     }
 
+    /** ঋণ/অগ্রিমের অবস্থা ব্যাজ */
+    def loanStatus = { attrs ->
+        String status = attrs.status as String
+        Map m = [PENDING: ['warning text-dark', 'অপেক্ষমাণ'], ACTIVE: ['primary', 'চলমান'], CLOSED: ['success', 'শোধ হয়েছে'],
+                 REJECTED: ['danger', 'প্রত্যাখ্যাত'], CANCELLED: ['secondary', 'প্রত্যাহার']]
+        List v = m[status] ?: ['light text-dark', status ?: '']
+        out << "<span class=\"badge text-bg-${v[0]}\">${v[1]}</span>"
+    }
+
     /** টাকা, ঋণাত্মক হলে লাল ও চিহ্নসহ */
     def signedMoney = { attrs ->
         BigDecimal v = (attrs.value ?: 0) as BigDecimal

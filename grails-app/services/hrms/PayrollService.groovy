@@ -2,10 +2,13 @@ package hrms
 
 import grails.gorm.transactions.Transactional
 
+import hrms.payroll.TaxCalculator
+
 import java.math.RoundingMode
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.YearMonth
+import java.time.temporal.ChronoUnit
 
 /**
  * Day 5: মাসিক পে-রোল - উপস্থিতি, ছুটি ও ওভারটাইম থেকে বেতন শিট।
@@ -19,6 +22,13 @@ import java.time.YearMonth
  *  - প্রতি ৩ দিন দেরিতে ১ দিনের বেতন কাটা (LATE_DAYS_PER_DEDUCTION)।
  *  - ওভারটাইম = অনুমোদিত ঘণ্টা × (বেসিক / 208) × 2। হিসাব বিভাগ ঘণ্টা হাতে বদলাতে পারে।
  *  - সব টাকা পূর্ণ টাকায় গোল করা।
+ *
+ * Day 6 এর যোগ:
+ *  - বোনাস: ওই পে-মাসের PLANNED/PAID বোনাস আয়ে যোগ (gross এর অংশ), TDS এ ধরা হয় না।
+ *  - PF: শুধু FULL_TIME কর্মী। কর্মীর অংশ = উপার্জিত বেসিকের ১০% (কাটা হয়); কোম্পানির অংশ সমান (শুধু তথ্য)।
+ *  - TDS: নিয়মিত মাসিক gross (কাঠামো + ভাতা) ×১২ থেকে বার্ষিক কর ({@link TaxCalculator}), ÷১২; মাঝ-মাসে যোগ দিলে অনুপাতে।
+ *  - ঋণ/অগ্রিম: ACTIVE ঋণের এই মাস পর্যন্ত বকেয়া কিস্তি কাটা হয়। চূড়ান্ত করলে কিস্তি PAID, পুনরায় খুললে আবার PENDING।
+ *  - গ্র্যাচুইটি প্রভিশন: ১ বছর পূর্ণ FULL_TIME কর্মীর জন্য মাসে বেসিক ÷ ১২ (শুধু তথ্য; পাওনা হয় ৫ বছর পর)।
  */
 @Transactional
 class PayrollService {
@@ -27,6 +37,11 @@ class PayrollService {
     static final int LATE_DAYS_PER_DEDUCTION = 3
     static final BigDecimal OT_HOURS_DIVISOR = 208.0
     static final BigDecimal OT_MULTIPLIER = 2.0
+    static final BigDecimal PF_EMPLOYEE_PCT = 10.0
+    static final BigDecimal PF_EMPLOYER_PCT = 10.0
+    static final List<String> PF_TYPES = ['FULL_TIME']
+    static final int GRATUITY_MIN_MONTHS_PROVISION = 12
+    static final int GRATUITY_ELIGIBLE_YEARS = 5
 
     def accessService
     def leaveService
@@ -66,7 +81,7 @@ class PayrollService {
 
         List<Employee> emps = Employee.findAll("from Employee e where e.status <> 'INACTIVE' and e.joinDate <= :end order by e.name",
                 [end: ym.atEndOfMonth()])
-        Map ctx = loadContext(ym)
+        Map ctx = loadContext(ym, run)
         emps.each { Employee e -> buildLine(run, e, ym, ctx, carry[e.id]) }
         updateTotals(run)
 
@@ -85,7 +100,7 @@ class PayrollService {
         YearMonth ym = run.period
         Map carry = [ot: otHours, adj: adj, note: note?.trim()]
         deleteLine(line)
-        PayrollLine fresh = buildLine(run, emp, ym, loadContext(ym), carry)
+        PayrollLine fresh = buildLine(run, emp, ym, loadContext(ym, run), carry)
         updateTotals(run)
         [ok: true, line: fresh, message: 'লাইন হালনাগাদ হয়েছে।']
     }
@@ -97,7 +112,8 @@ class PayrollService {
         run.finalizedBy = accessService.currentUser()?.username
         run.finalizedAt = LocalDateTime.now(AttendanceService.ZONE)
         run.save(flush: true)
-        [ok: true, message: 'পে-রোল চূড়ান্ত করা হয়েছে। এখন আর বদলানো যাবে না।']
+        markPaid(run)
+        [ok: true, message: 'পে-রোল চূড়ান্ত করা হয়েছে। কিস্তি ও বোনাস "পরিশোধিত" চিহ্নিত হয়েছে; এখন আর বদলানো যাবে না।']
     }
 
     Map reopen(PayrollRun run) {
@@ -106,7 +122,8 @@ class PayrollService {
         run.finalizedBy = null
         run.finalizedAt = null
         run.save(flush: true)
-        [ok: true, message: 'পে-রোল আবার খোলা হয়েছে (DRAFT)।']
+        markUnpaid(run)
+        [ok: true, message: 'পে-রোল আবার খোলা হয়েছে (DRAFT)। কিস্তি ও বোনাস আবার "বাকি" অবস্থায়।']
     }
 
     Map deleteRun(PayrollRun run) {
@@ -117,7 +134,7 @@ class PayrollService {
     }
 
     // ------------------------------------------------------------------ মাসের তথ্য একবারে লোড
-    private Map loadContext(YearMonth ym) {
+    private Map loadContext(YearMonth ym, PayrollRun run) {
         LocalDate first = ym.atDay(1)
         LocalDate last = ym.atEndOfMonth()
 
@@ -143,7 +160,19 @@ class PayrollService {
             if (h.head.active) heads[h.employee.id] << h
         }
 
-        [att: att, leaves: leaves, ot: ot, heads: heads]
+        // Day 6: বোনাস (ওই পে-মাসের, বাতিল বাদে)
+        Map<Long, List<Bonus>> bonuses = [:].withDefault { [] as List<Bonus> }
+        Bonus.findAllByPayYearAndPayMonthAndStatusNotEqual(ym.year, ym.monthValue, 'CANCELLED').each { Bonus b -> bonuses[b.employee.id] << b }
+
+        // Day 6: ACTIVE ঋণের বকেয়া কিস্তি (এই মাস বা আগের) - এই পে-রোলে ধরা বা কোনো পে-রোলেই ধরা নেই এমন
+        int ymKey = ym.year * 12 + ym.monthValue
+        Map<Long, List<LoanInstallment>> dueLoans = [:].withDefault { [] as List<LoanInstallment> }
+        LoanInstallment.executeQuery(
+                "from LoanInstallment i where i.status = 'PENDING' and i.loan.status = 'ACTIVE' " +
+                "and (i.dueYear * 12 + i.dueMonth) <= :key and (i.payrollRun is null or i.payrollRun = :run) order by i.dueYear, i.dueMonth, i.seqNo",
+                [key: ymKey, run: run]).each { LoanInstallment i -> dueLoans[i.loan.employee.id] << i }
+
+        [att: att, leaves: leaves, ot: ot, heads: heads, bonuses: bonuses, loans: dueLoans]
     }
 
     // ------------------------------------------------------------------ একজনের হিসাব
@@ -198,12 +227,26 @@ class PayrollService {
         BigDecimal conv = r0(s.conveyance * factor)
 
         BigDecimal otherAllowance = 0.0
+        BigDecimal otherAllowanceFull = 0.0     // পূর্ণ মাসের ভাতা (TDS এর নিয়মিত আয় বের করতে)
         BigDecimal otherDeduction = 0.0
         List<Map> items = []
         ((ctx.heads as Map)[e.id] as List<EmployeeSalaryHead>).each { EmployeeSalaryHead h ->
             BigDecimal amt = r0(h.head.amountFor(s.basic, h.amount) * factor)
             items << [code: h.head.code, name: h.head.name, type: h.head.headType, amount: amt]
-            if (h.head.headType == 'EARNING') otherAllowance += amt else otherDeduction += amt
+            if (h.head.headType == 'EARNING') {
+                otherAllowance += amt
+                otherAllowanceFull += r0(h.head.amountFor(s.basic, h.amount))
+            } else {
+                otherDeduction += amt
+            }
+        }
+
+        // ---- Day 6: বোনাস
+        BigDecimal bonusTotal = 0.0
+        ((ctx.bonuses as Map)[e.id] as List<Bonus>).each { Bonus b ->
+            items << [code: b.bonusType == 'FESTIVAL' ? 'BONUS-F' : (b.bonusType == 'PERFORMANCE' ? 'BONUS-P' : 'BONUS'),
+                      name: "বোনাস: ${b.title}".toString().take(80), type: 'EARNING', amount: r0(b.amount)]
+            bonusTotal += r0(b.amount)
         }
 
         // ---- ওভারটাইম
@@ -212,7 +255,7 @@ class PayrollService {
         BigDecimal otHours = otManual != null ? otManual : otAuto
         BigDecimal otAmount = r0(s.basic.divide(OT_HOURS_DIVISOR, 10, RoundingMode.HALF_UP) * OT_MULTIPLIER * otHours)
 
-        BigDecimal gross = basic + rent + med + conv + otherAllowance + otAmount
+        BigDecimal gross = basic + rent + med + conv + otherAllowance + otAmount + bonusTotal
 
         // ---- কর্তন (অনুপস্থিতি/বিনা বেতন ছুটি/দেরি)
         int lateDedDays = late.intdiv(LATE_DAYS_PER_DEDUCTION)
@@ -221,7 +264,31 @@ class PayrollService {
         if (absentDed > baseEarned) absentDed = baseEarned
         BigDecimal lateDed = r0(structureGross * lateDedDays / DAYS_PER_MONTH)
         if (lateDed > baseEarned - absentDed) lateDed = baseEarned - absentDed
-        BigDecimal totalDed = absentDed + lateDed + otherDeduction
+
+        // ---- Day 6: PF, TDS, ঋণের কিস্তি, গ্র্যাচুইটি প্রভিশন
+        boolean pfEligible = PF_TYPES.contains(e.employeeType)
+        BigDecimal pfEmp = pfEligible ? r0(basic * PF_EMPLOYEE_PCT / 100) : 0.0
+        BigDecimal pfEmpr = pfEligible ? r0(basic * PF_EMPLOYER_PCT / 100) : 0.0
+
+        BigDecimal regularMonthly = structureGross + otherAllowanceFull
+        BigDecimal tdsAmt = r0(TaxCalculator.monthlyTds(regularMonthly, e.gender == 'FEMALE') * factor)
+
+        BigDecimal loanDed = 0.0
+        List<LoanInstallment> dueInst = (ctx.loans as Map)[e.id] as List<LoanInstallment>
+        dueInst.each { LoanInstallment i ->
+            loanDed += i.amount
+            i.payrollRun = run
+            i.save(failOnError: true)
+        }
+
+        long serviceMonths = ChronoUnit.MONTHS.between(e.joinDate, last.plusDays(1))
+        BigDecimal gratuityProv = (pfEligible && serviceMonths >= GRATUITY_MIN_MONTHS_PROVISION) ? r0(basic / 12) : 0.0
+
+        if (pfEmp > 0) items << [code: 'PF', name: "প্রভিডেন্ট ফান্ড (${PF_EMPLOYEE_PCT.intValue()}%)".toString(), type: 'DEDUCTION', amount: pfEmp]
+        if (tdsAmt > 0) items << [code: 'TDS', name: 'আয়কর (TDS)', type: 'DEDUCTION', amount: tdsAmt]
+        if (loanDed > 0) items << [code: 'LOAN', name: 'ঋণ/অগ্রিমের কিস্তি', type: 'DEDUCTION', amount: loanDed]
+
+        BigDecimal totalDed = absentDed + lateDed + otherDeduction + pfEmp + tdsAmt + loanDed
 
         BigDecimal adj = ((carry?.adj ?: 0.0) as BigDecimal).setScale(0, RoundingMode.HALF_UP)
         BigDecimal net = gross - totalDed + adj
@@ -233,8 +300,9 @@ class PayrollService {
                 workingDays: days.size(), presentDays: present, lateDays: late, holidayDays: holiday,
                 paidLeaveDays: paidLeave, unpaidLeaveDays: unpaidLeave, absentDays: absent, lateDeductionDays: lateDedDays,
                 basic: basic, houseRent: rent, medical: med, conveyance: conv, otherAllowance: otherAllowance,
-                overtimeHours: otHours, overtimeHoursManual: otManual, overtimeAmount: otAmount, grossEarnings: gross,
-                absentDeduction: absentDed, lateDeduction: lateDed, otherDeduction: otherDeduction, totalDeduction: totalDed,
+                overtimeHours: otHours, overtimeHoursManual: otManual, overtimeAmount: otAmount, bonus: bonusTotal, grossEarnings: gross,
+                absentDeduction: absentDed, lateDeduction: lateDed, otherDeduction: otherDeduction,
+                pfEmployee: pfEmp, tds: tdsAmt, loanDeduction: loanDed, pfEmployer: pfEmpr, gratuityProvision: gratuityProv, totalDeduction: totalDed,
                 adjustment: adj, adjustmentNote: carry?.note as String, structureGross: structureGross, netPay: net,
                 remarks: warnings ? warnings.join('; ') : null)
         line.save(failOnError: true, flush: true)
@@ -248,13 +316,82 @@ class PayrollService {
 
     // ------------------------------------------------------------------ মোছা ও মোট
     private void deleteLine(PayrollLine line) {
+        LoanInstallment.executeUpdate("update LoanInstallment i set i.payrollRun = null where i.payrollRun = :r and i.status = 'PENDING' and i.loan in (select l from Loan l where l.employee = :e)",
+                [r: line.payrollRun, e: line.employee])
         PayrollLineItem.executeUpdate('delete from PayrollLineItem i where i.line = :l', [l: line])
         line.delete(flush: true)
     }
 
     private void deleteLines(PayrollRun run) {
+        LoanInstallment.executeUpdate("update LoanInstallment i set i.payrollRun = null where i.payrollRun = :r and i.status = 'PENDING'", [r: run])
         PayrollLineItem.executeUpdate('delete from PayrollLineItem i where i.line in (select l from PayrollLine l where l.payrollRun = :r)', [r: run])
         PayrollLine.executeUpdate('delete from PayrollLine l where l.payrollRun = :r', [r: run])
+    }
+
+    // ------------------------------------------------------------------ Day 6: চূড়ান্ত / পুনরায় খোলা
+    /** চূড়ান্ত করলে: এই পে-রোলে কাটা কিস্তি PAID (সব কিস্তি শোধ হলে ঋণ CLOSED) ও এ মাসের বোনাস PAID */
+    private void markPaid(PayrollRun run) {
+        List<LoanInstallment> insts = LoanInstallment.findAllByPayrollRunAndStatus(run, 'PENDING')
+        Set<Loan> loans = [] as Set<Loan>
+        insts.each { LoanInstallment i ->
+            i.status = 'PAID'
+            i.save(failOnError: true, flush: true)
+            loans << i.loan
+        }
+        loans.each { Loan l ->
+            if (LoanInstallment.countByLoanAndStatus(l, 'PENDING') == 0) {
+                l.status = 'CLOSED'
+                l.save(failOnError: true)
+            }
+        }
+        Bonus.executeUpdate("update Bonus b set b.status = 'PAID' where b.payYear = :y and b.payMonth = :m and b.status = 'PLANNED'",
+                [y: run.payYear, m: run.payMonth])
+    }
+
+    private void markUnpaid(PayrollRun run) {
+        List<LoanInstallment> insts = LoanInstallment.findAllByPayrollRunAndStatus(run, 'PAID')
+        Set<Loan> loans = [] as Set<Loan>
+        insts.each { LoanInstallment i ->
+            i.status = 'PENDING'
+            i.save(failOnError: true)
+            loans << i.loan
+        }
+        loans.each { Loan l ->
+            if (l.status == 'CLOSED') {
+                l.status = 'ACTIVE'
+                l.save(failOnError: true)
+            }
+        }
+        Bonus.executeUpdate("update Bonus b set b.status = 'PLANNED' where b.payYear = :y and b.payMonth = :m and b.status = 'PAID'",
+                [y: run.payYear, m: run.payMonth])
+    }
+
+    // ------------------------------------------------------------------ Day 6: PF ও গ্র্যাচুইটি রিপোর্ট
+    /** কর্মীওয়ারি PF জমা (চূড়ান্ত পে-রোল থেকে) */
+    List<Map> pfLedger() {
+        Map<Long, Map> byEmp = [:]
+        PayrollLine.executeQuery(
+                "select l.employee.id, l.employeeName, sum(l.pfEmployee), sum(l.pfEmployer), count(l) from PayrollLine l " +
+                "where l.payrollRun.status = 'FINALIZED' and (l.pfEmployee > 0 or l.pfEmployer > 0) group by l.employee.id, l.employeeName order by l.employeeName").each { row ->
+            BigDecimal emp = row[2] as BigDecimal
+            BigDecimal empr = row[3] as BigDecimal
+            byEmp[row[0] as Long] = [name: row[1], employee: emp, employer: empr, total: emp + empr, months: row[4]]
+        }
+        byEmp.values() as List<Map>
+    }
+
+    /** গ্র্যাচুইটি: ১ বছর পূর্ণ হলে প্রভিশন চলে; ৫ বছর পূর্ণ হলে পাওনা = শেষ বেসিক × পূর্ণ বছর (বছরে ৩০ দিনের মজুরি) */
+    List<Map> gratuityReport() {
+        LocalDate today = today()
+        Employee.findAll("from Employee e where e.status <> 'INACTIVE' order by e.name").collect { Employee e ->
+            long months = ChronoUnit.MONTHS.between(e.joinDate, today)
+            int years = (int) (months / 12)
+            SalaryStructure s = salaryService.currentStructure(e)
+            boolean eligible = years >= GRATUITY_ELIGIBLE_YEARS
+            [employee: e, years: years, months: months % 12, basic: s.basic, fullTime: PF_TYPES.contains(e.employeeType),
+             eligible: eligible, payable: eligible ? r0(s.basic * years) : 0.0,
+             provisionSoFar: (PF_TYPES.contains(e.employeeType) && years >= 1) ? r0(s.basic * years) : 0.0]
+        }
     }
 
     void updateTotals(PayrollRun run) {
@@ -278,14 +415,14 @@ class PayrollService {
     static final List<String> CSV_HEADER = ['Employee', 'Department', 'Designation', 'Working days', 'Present', 'Late', 'Paid leave',
                                             'Unpaid leave', 'Absent', 'Basic', 'House rent', 'Medical', 'Conveyance', 'Other allowance',
                                             'OT hours', 'OT amount', 'Gross', 'Absent deduction', 'Late deduction', 'Other deduction',
-                                            'Adjustment', 'Total deduction', 'Net pay']
+                                            'Adjustment', 'Bonus', 'PF (employee)', 'TDS', 'Loan installment', 'Total deduction', 'Net pay', 'PF (employer)', 'Gratuity provision']
 
     List<List> csvRows(PayrollRun run) {
         lines(run).collect { PayrollLine l ->
             [l.employeeName, l.departmentName, l.designationTitle, l.workingDays, l.presentDays, l.lateDays, l.paidLeaveDays,
              l.unpaidLeaveDays, l.absentDays, l.basic, l.houseRent, l.medical, l.conveyance, l.otherAllowance,
              l.overtimeHours, l.overtimeAmount, l.grossEarnings, l.absentDeduction, l.lateDeduction, l.otherDeduction,
-             l.adjustment, l.totalDeduction, l.netPay] as List
+             l.adjustment, l.bonus, l.pfEmployee, l.tds, l.loanDeduction, l.totalDeduction, l.netPay, l.pfEmployer, l.gratuityProvision] as List
         }
     }
 

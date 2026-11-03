@@ -9,6 +9,8 @@ class BootStrap {
     EmploymentService employmentService
     LeaveService leaveService
     SalaryService salaryService
+    LoanService loanService
+    BonusService bonusService
     private Timer leaveTimer
 
     static final String DEMO_PASSWORD = 'Hrms@2026'
@@ -21,6 +23,7 @@ class BootStrap {
             seedAttendance()
             seedLeave()
             seedPayroll()
+            seedPayrollDay6()
             leaveService.syncStatus()
             salaryService.syncProfileSalaries()
         }
@@ -223,6 +226,37 @@ class BootStrap {
         }
 
         if (OvertimeRequest.count() == 0 && PayrollRun.count() == 0) seedLastMonthActivity()
+    }
+
+    /**
+     * Day 6: পেমেন্ট তথ্য (ব্যাংক/bKash/Nagad), একটি চলমান ঋণ (করিম, গত মাস থেকে শুরু) ও একটি পারফরম্যান্স বোনাস (রহিম, গত মাস)।
+     * গত মাসের পে-রোল চালালে PF, TDS, ঋণের কিস্তি ও বোনাস দেখা যাবে।
+     */
+    private void seedPayrollDay6() {
+        if (PaymentInfo.count() == 0) {
+            Employee rahim = Employee.findByEmail('rahim@example.com')
+            Employee karim = Employee.findByEmail('karim@example.com')
+            Employee sumaiya = Employee.findByEmail('sumaiya@example.com')
+            Employee nasrin = Employee.findByEmail('nasrin@example.com')
+            if (rahim) new PaymentInfo(employee: rahim, method: 'BANK', bankName: 'Dutch-Bangla Bank', bankBranch: 'Mirpur', accountNo: '1011234567890', routingNo: '090261234').save(failOnError: true)
+            if (karim) new PaymentInfo(employee: karim, method: 'BANK', bankName: 'BRAC Bank', bankBranch: 'Dhanmondi', accountNo: '1501203456789', routingNo: '060261234').save(failOnError: true)
+            if (sumaiya) new PaymentInfo(employee: sumaiya, method: 'BKASH', walletNo: '01933333333').save(failOnError: true)
+            if (nasrin) new PaymentInfo(employee: nasrin, method: 'NAGAD', walletNo: '01644444444').save(failOnError: true)
+        }
+
+        if (Loan.count() == 0 && Bonus.count() == 0 && PayrollRun.count() == 0) {
+            java.time.YearMonth last = java.time.YearMonth.from(LocalDate.now(AttendanceService.ZONE)).minusMonths(1)
+            Employee karim = Employee.findByEmail('karim@example.com')
+            Employee rahim = Employee.findByEmail('rahim@example.com')
+            if (karim) {
+                Map r = loanService.create(karim, 'LOAN', 60000, 6, last.year, last.monthValue, 'নমুনা ঋণ (Day 6 seed)')
+                if (r.ok) loanService.approve(r.loan as Loan, 'seed')
+            }
+            if (rahim) {
+                new Bonus(employee: rahim, bonusType: 'PERFORMANCE', title: 'Q3 performance (sample)', payYear: last.year, payMonth: last.monthValue,
+                        amount: 5000, note: 'নমুনা', createdBy: 'system').save(failOnError: true)
+            }
+        }
     }
 
     private void seedLastMonthActivity() {

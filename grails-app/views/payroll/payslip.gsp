@@ -20,8 +20,21 @@
 </head>
 <body>
 <div class="d-flex justify-content-between align-items-center mb-3 no-print">
-    <g:link action="line" id="${line.id}" class="btn btn-outline-secondary"><i class="bi bi-arrow-left"></i> ফিরে যান</g:link>
-    <button type="button" class="btn btn-primary" onclick="window.print()"><i class="bi bi-printer"></i> প্রিন্ট / PDF সেভ</button>
+    <g:if test="${self}">
+        <g:link controller="payslip" action="index" class="btn btn-outline-secondary"><i class="bi bi-arrow-left"></i> ফিরে যান</g:link>
+    </g:if>
+    <g:else>
+        <g:link controller="payroll" action="line" id="${line.id}" class="btn btn-outline-secondary"><i class="bi bi-arrow-left"></i> ফিরে যান</g:link>
+    </g:else>
+    <div class="d-flex gap-2">
+        <g:if test="${self}">
+            <g:link controller="payslip" action="pdf" id="${line.id}" target="_blank" class="btn btn-outline-primary"><i class="bi bi-file-earmark-pdf"></i> PDF ডাউনলোড</g:link>
+        </g:if>
+        <g:else>
+            <g:link controller="payroll" action="payslipPdf" id="${line.id}" target="_blank" class="btn btn-outline-primary"><i class="bi bi-file-earmark-pdf"></i> PDF ডাউনলোড</g:link>
+        </g:else>
+        <button type="button" class="btn btn-primary" onclick="window.print()"><i class="bi bi-printer"></i> প্রিন্ট</button>
+    </div>
 </div>
 
 <div class="payslip">
@@ -81,6 +94,13 @@
         <span class="fw-semibold">নেট বেতন</span>
         <span class="fs-4 fw-bold"><hrms:money value="${line.netPay}"/></span>
     </div>
+
+    <g:if test="${line.pfEmployer > 0 || line.gratuityProvision > 0}">
+        <div class="small text-muted mt-3">
+            <g:if test="${line.pfEmployer > 0}">কোম্পানির PF অংশ (কাটা হয় না): <hrms:money value="${line.pfEmployer}"/>. </g:if>
+            <g:if test="${line.gratuityProvision > 0}">এ মাসের গ্র্যাচুইটি প্রভিশন (কাটা হয় না): <hrms:money value="${line.gratuityProvision}"/>.</g:if>
+        </div>
+    </g:if>
 
     <div class="small text-muted mt-4">এটি কম্পিউটারে তৈরি পে-স্লিপ, স্বাক্ষরের প্রয়োজন নেই।</div>
 </div>

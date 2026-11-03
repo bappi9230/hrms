@@ -76,7 +76,7 @@ class EmploymentService {
     void deleteEmployee(Employee employee) {
         LeaveApproval.executeUpdate('delete from LeaveApproval a where a.leaveRequest in (select r from LeaveRequest r where r.employee = :e)', [e: employee])
         [LeaveRequest, LeaveBalance, EmployeeDocument, EmploymentHistory, Attendance, OvertimeRequest, RegularizationRequest, Roster,
-         SalaryStructure, EmployeeSalaryHead, SalaryRevision].each { Class c ->
+         SalaryStructure, EmployeeSalaryHead, SalaryRevision, PaymentInfo].each { Class c ->
             c.executeUpdate("delete from ${c.simpleName} x where x.employee = :e".toString(), [e: employee])
         }
         employee.delete(flush: true)

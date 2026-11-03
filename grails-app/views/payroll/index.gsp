@@ -5,7 +5,15 @@
     <title>বেতন</title>
 </head>
 <body>
-<h1 class="page-title">বেতন (পে-রোল)</h1>
+<div class="d-flex flex-wrap justify-content-between align-items-center mb-2 gap-2">
+    <h1 class="page-title mb-0">বেতন (পে-রোল)</h1>
+    <div class="d-flex flex-wrap gap-2">
+        <g:link controller="bonus" action="index" class="btn btn-outline-primary btn-sm"><i class="bi bi-gift"></i> বোনাস</g:link>
+        <g:link controller="loan" action="index" class="btn btn-outline-primary btn-sm"><i class="bi bi-cash-stack"></i> ঋণ ও অগ্রিম</g:link>
+        <g:link controller="paymentInfo" action="index" class="btn btn-outline-primary btn-sm"><i class="bi bi-credit-card"></i> পেমেন্ট তথ্য</g:link>
+        <g:link action="pfGratuity" class="btn btn-outline-primary btn-sm"><i class="bi bi-piggy-bank"></i> PF ও গ্র্যাচুইটি</g:link>
+    </div>
+</div>
 
 <div class="row g-3 mb-4">
     <div class="col-lg-5">
@@ -35,14 +43,18 @@
     </div>
     <div class="col-lg-7">
         <div class="card h-100">
-            <div class="card-header bg-white fw-semibold">হিসাবের নিয়ম (Day 5 - সহজ সংস্করণ)</div>
+            <div class="card-header bg-white fw-semibold">হিসাবের নিয়ম (সহজ সংস্করণ)</div>
             <div class="card-body small">
                 <ul class="mb-0 ps-3">
                     <li><strong>কর্মদিবস:</strong> শুক্রবার বাদে প্রতিদিন (যোগদানের তারিখ থেকে)। মাসের মাঝে যোগ দিলে আয় দিনের অনুপাতে।</li>
                     <li><strong>অনুপস্থিতি / বিনা বেতনের ছুটি:</strong> প্রতিদিনের জন্য gross ÷ ${dayDivisor} কাটা হয়। উপস্থিতির রেকর্ড না থাকলে অনুপস্থিত ধরা হয়।</li>
                     <li><strong>দেরি:</strong> প্রতি ${lateRule} দিন দেরিতে ১ দিনের বেতন কাটা।</li>
                     <li><strong>ওভারটাইম:</strong> অনুমোদিত ঘণ্টা × (বেসিক ÷ ২০৮) × ${otMultiplier}। হিসাব বিভাগ লাইনে গিয়ে ঘণ্টা বদলাতে পারে।</li>
-                    <li><strong>ভাতা/কর্তন খাত:</strong> কর্মীর বেতন কাঠামো পাতা থেকে বরাদ্দ করা খাত যোগ/বিয়োগ হয়। কর/PF/বোনাস Day 6 এ আসবে।</li>
+                    <li><strong>ভাতা/কর্তন খাত:</strong> কর্মীর বেতন কাঠামো পাতা থেকে বরাদ্দ করা খাত যোগ/বিয়োগ হয়।</li>
+                    <li><strong>বোনাস:</strong> ওই পে-মাসের বোনাস আয়ে যোগ হয় (PF/TDS এ ধরা হয় না)।</li>
+                    <li><strong>PF:</strong> শুধু FULL_TIME কর্মী; বেসিকের ${pfEmployeePct}% কাটা হয়, কোম্পানি সমান অংশ দেয় (কাটা হয় না)।</li>
+                    <li><strong>আয়কর (TDS):</strong> নিয়মিত মাসিক আয় ×১২ থেকে বার্ষিক কর (করমুক্ত সীমা, ১/৩ ছাড় ও স্ল্যাব সহ), ÷১২। রেট <code>TaxCalculator</code> এ - ব্যবহারের আগে চূড়ান্ত আইনের সাথে মিলিয়ে নিন।</li>
+                    <li><strong>ঋণ/অগ্রিম:</strong> অনুমোদিত ঋণের কিস্তি মাস অনুযায়ী আপনা-আপনি কাটা হয়; চূড়ান্ত করলে কিস্তি "পরিশোধিত"।</li>
                 </ul>
             </div>
         </div>

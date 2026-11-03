@@ -26,8 +26,14 @@
         <g:render template="/layouts/menuItem" model="[label: 'বেতন কাঠামো', icon: 'bi-cash-stack', controller: 'salary']"/>
     </sec:ifAnyGranted>
 
+    <sec:ifAnyGranted roles="ROLE_ADMIN,ROLE_ACCOUNTANT">
+        <g:render template="/layouts/menuItem" model="[label: 'বোনাস', icon: 'bi-gift', controller: 'bonus']"/>
+        <g:render template="/layouts/menuItem" model="[label: 'ঋণ ও অগ্রিম', icon: 'bi-cash-stack', controller: 'loan']"/>
+        <g:render template="/layouts/menuItem" model="[label: 'পেমেন্ট তথ্য', icon: 'bi-credit-card', controller: 'paymentInfo']"/>
+    </sec:ifAnyGranted>
+
     <sec:ifAnyGranted roles="ROLE_EMPLOYEE">
-        <g:render template="/layouts/menuItem" model="[label: 'আমার পে-স্লিপ', icon: 'bi-receipt', controller: 'payslip', soon: 6]"/>
+        <g:render template="/layouts/menuItem" model="[label: 'আমার পে-স্লিপ', icon: 'bi-receipt', controller: 'payslip']"/>
     </sec:ifAnyGranted>
 
     <sec:ifAnyGranted roles="ROLE_ADMIN,ROLE_HR">

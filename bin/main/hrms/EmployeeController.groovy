@@ -203,6 +203,11 @@ class EmployeeController {
             redirect(action: 'show', id: id)
             return
         }
+        if (Loan.countByEmployee(employee) > 0 || Bonus.countByEmployee(employee) > 0) {
+            flash.error = 'এই কর্মীর ঋণ/বোনাসের রেকর্ড আছে, তাই মোছা যাবে না। চাকরি শেষ হলে স্ট্যাটাস INACTIVE করুন।'
+            redirect(action: 'show', id: id)
+            return
+        }
         String name = employee.name
         employmentService.deleteEmployee(employee)
         flash.success = "কর্মী '${name}' মুছে ফেলা হয়েছে।".toString()

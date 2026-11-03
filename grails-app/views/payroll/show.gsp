@@ -20,6 +20,14 @@
     <div class="d-flex flex-wrap gap-2">
         <g:link action="index" class="btn btn-outline-secondary"><i class="bi bi-arrow-left"></i> তালিকা</g:link>
         <g:link action="exportCsv" id="${run.id}" class="btn btn-outline-primary"><i class="bi bi-filetype-csv"></i> CSV</g:link>
+        <g:if test="${run.status == 'FINALIZED'}">
+            <g:link action="bankAdvice" id="${run.id}" class="btn btn-outline-primary"><i class="bi bi-bank"></i> ব্যাংক / bKash শিট</g:link>
+            <g:form action="emailAll" id="${run.id}" method="POST" class="d-inline"
+                    onsubmit="return confirm('এখনো পাঠানো হয়নি এমন ${unsentCount} জনকে পে-স্লিপ ইমেইল করবেন?');">
+                <button type="submit" class="btn btn-outline-primary" ${mailConfigured ? '' : 'disabled'}
+                        title="${mailConfigured ? '' : 'ইমেইল সার্ভার ঠিক করা নেই (README দেখুন)'}"><i class="bi bi-envelope"></i> সবাইকে পে-স্লিপ ইমেইল</button>
+            </g:form>
+        </g:if>
         <g:if test="${run.status == 'DRAFT'}">
             <g:form action="generate" method="POST" class="d-inline" onsubmit="return confirm('নতুন করে হিসাব করবেন? হাতে দেওয়া OT ও সমন্বয় ধরে রাখা হবে।');">
                 <g:hiddenField name="payYear" value="${run.payYear}"/>
@@ -67,9 +75,13 @@
                 <th class="text-end">যাতায়াত</th>
                 <th class="text-end">ভাতা</th>
                 <th class="text-end">OT</th>
+                <th class="text-end">বোনাস</th>
                 <th class="text-end">মোট আয়</th>
                 <th class="text-end">অনুপস্থিতি/দেরি কর্তন</th>
                 <th class="text-end">অন্য কর্তন</th>
+                <th class="text-end">PF</th>
+                <th class="text-end">TDS</th>
+                <th class="text-end">ঋণ কিস্তি</th>
                 <th class="text-end">সমন্বয়</th>
                 <th class="text-end">নেট বেতন</th>
                 <th></th>
@@ -92,16 +104,29 @@
                     <td class="text-end"><g:formatNumber number="${l.conveyance}" format="#,##0"/></td>
                     <td class="text-end"><g:formatNumber number="${l.otherAllowance}" format="#,##0"/></td>
                     <td class="text-end"><g:formatNumber number="${l.overtimeAmount}" format="#,##0"/><g:if test="${l.overtimeHours > 0}"><div class="text-muted">${l.overtimeHours} ঘণ্টা</div></g:if></td>
+                    <td class="text-end"><g:formatNumber number="${l.bonus}" format="#,##0"/></td>
                     <td class="text-end fw-semibold"><g:formatNumber number="${l.grossEarnings}" format="#,##0"/></td>
                     <td class="text-end text-danger"><g:formatNumber number="${l.absentDeduction + l.lateDeduction}" format="#,##0"/></td>
                     <td class="text-end text-danger"><g:formatNumber number="${l.otherDeduction}" format="#,##0"/></td>
+                    <td class="text-end text-danger"><g:formatNumber number="${l.pfEmployee}" format="#,##0"/></td>
+                    <td class="text-end text-danger"><g:formatNumber number="${l.tds}" format="#,##0"/></td>
+                    <td class="text-end text-danger"><g:formatNumber number="${l.loanDeduction}" format="#,##0"/></td>
                     <td class="text-end"><hrms:signedMoney value="${l.adjustment}"/></td>
                     <td class="text-end fw-bold"><g:formatNumber number="${l.netPay}" format="#,##0"/></td>
-                    <td class="text-end"><g:link action="line" id="${l.id}" class="btn btn-sm btn-outline-secondary" title="বিস্তারিত"><i class="bi bi-eye"></i></g:link></td>
+                    <td class="text-end text-nowrap">
+                        <g:link action="line" id="${l.id}" class="btn btn-sm btn-outline-secondary" title="বিস্তারিত"><i class="bi bi-eye"></i></g:link>
+                        <g:link action="payslipPdf" id="${l.id}" target="_blank" class="btn btn-sm btn-outline-primary" title="পে-স্লিপ PDF"><i class="bi bi-file-earmark-pdf"></i></g:link>
+                        <g:if test="${run.status == 'FINALIZED'}">
+                            <g:form action="emailPayslip" id="${l.id}" method="POST" class="d-inline">
+                                <button type="submit" class="btn btn-sm ${l.emailedAt ? 'btn-success' : 'btn-outline-secondary'}" ${mailConfigured ? '' : 'disabled'}
+                                        title="${l.emailedAt ? 'পাঠানো হয়েছে: ' + l.emailedTo : 'ইমেইল করুন'}"><i class="bi bi-envelope${l.emailedAt ? '-check' : ''}"></i></button>
+                            </g:form>
+                        </g:if>
+                    </td>
                 </tr>
             </g:each>
             <g:if test="${!lines}">
-                <tr><td colspan="14" class="text-center text-muted py-4">কোনো কর্মী নেই।</td></tr>
+                <tr><td colspan="18" class="text-center text-muted py-4">কোনো কর্মী নেই।</td></tr>
             </g:if>
             </tbody>
             <g:if test="${lines}">
@@ -114,8 +139,12 @@
                     <td class="text-end"><g:formatNumber number="${totals.conveyance}" format="#,##0"/></td>
                     <td class="text-end"><g:formatNumber number="${totals.allowance}" format="#,##0"/></td>
                     <td class="text-end"><g:formatNumber number="${totals.overtime}" format="#,##0"/></td>
+                    <td class="text-end"><g:formatNumber number="${totals.bonus}" format="#,##0"/></td>
                     <td class="text-end"><g:formatNumber number="${run.totalGross}" format="#,##0"/></td>
-                    <td colspan="2" class="text-end text-danger"><g:formatNumber number="${run.totalDeduction}" format="#,##0"/></td>
+                    <td colspan="2" class="text-end text-danger"><g:formatNumber number="${run.totalDeduction - totals.pf - totals.tds - totals.loan}" format="#,##0"/></td>
+                    <td class="text-end text-danger"><g:formatNumber number="${totals.pf}" format="#,##0"/></td>
+                    <td class="text-end text-danger"><g:formatNumber number="${totals.tds}" format="#,##0"/></td>
+                    <td class="text-end text-danger"><g:formatNumber number="${totals.loan}" format="#,##0"/></td>
                     <td class="text-end"><hrms:signedMoney value="${totals.adjustment}"/></td>
                     <td class="text-end"><g:formatNumber number="${run.totalNet}" format="#,##0"/></td>
                     <td></td>
@@ -124,6 +153,11 @@
             </g:if>
         </table>
     </div>
+</div>
+<div class="small text-muted mt-2">
+    কোম্পানির PF অংশ (কাটা হয় না): <hrms:money value="${totals.pfEmployer}"/> &middot;
+    গ্র্যাচুইটি প্রভিশন (এ মাস): <hrms:money value="${totals.gratuity}"/>
+    &middot; <g:link action="pfGratuity">PF ও গ্র্যাচুইটি রিপোর্ট</g:link>
 </div>
 </body>
 </html>

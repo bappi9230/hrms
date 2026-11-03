@@ -31,13 +31,19 @@ class PayrollLine {
     BigDecimal overtimeHours = 0           // যে ঘণ্টা ধরে হিসাব হয়েছে
     BigDecimal overtimeHoursManual         // হিসাব বিভাগের হাতে দেওয়া ঘণ্টা (null = অনুমোদিত OT থেকে)
     BigDecimal overtimeAmount = 0
+    BigDecimal bonus = 0                   // Day 6: উৎসব/পারফরম্যান্স বোনাস (grossEarnings এর অংশ)
     BigDecimal grossEarnings = 0
 
     // কর্তন
     BigDecimal absentDeduction = 0
     BigDecimal lateDeduction = 0
     BigDecimal otherDeduction = 0
-    BigDecimal totalDeduction = 0
+    BigDecimal pfEmployee = 0              // Day 6: কর্মীর PF অংশ (কাটা হয়)
+    BigDecimal tds = 0                     // Day 6: আয়কর (TDS)
+    BigDecimal loanDeduction = 0           // Day 6: ঋণ/অগ্রিমের কিস্তি
+    BigDecimal totalDeduction = 0          // সব কর্তনের যোগফল (PF, TDS, কিস্তিসহ)
+    BigDecimal pfEmployer = 0              // Day 6: কোম্পানির PF অংশ (কাটা হয় না, তথ্য)
+    BigDecimal gratuityProvision = 0       // Day 6: এ মাসের গ্র্যাচুইটি প্রভিশন (কাটা হয় না, তথ্য)
 
     // হাতে দেওয়া সমন্বয় (+ বা -)
     BigDecimal adjustment = 0
@@ -46,6 +52,8 @@ class PayrollLine {
     BigDecimal structureGross = 0          // কাঠামোর পূর্ণ মাসের gross
     BigDecimal netPay = 0
     String remarks                         // সতর্কবার্তা
+    java.time.LocalDateTime emailedAt      // Day 6: পে-স্লিপ ইমেইল পাঠানোর সময়
+    String emailedTo
 
     static constraints = {
         payrollRun nullable: false
@@ -56,6 +64,8 @@ class PayrollLine {
         overtimeHoursManual nullable: true, min: 0.0
         adjustmentNote nullable: true, maxSize: 255
         remarks nullable: true, maxSize: 500
+        emailedAt nullable: true
+        emailedTo nullable: true, maxSize: 100
     }
 
     static mapping = {

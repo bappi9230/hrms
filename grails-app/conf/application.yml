@@ -160,3 +160,17 @@ grails:
                     - { pattern: '/login/**',       access: ['permitAll'] }
                     - { pattern: '/logoff',         access: ['permitAll'] }
                     - { pattern: '/actuator/**',    access: ['ROLE_ADMIN'] }
+---
+# ---------------------------------------------------------------
+# Day 6: company details (payslip PDF, bank advice) and mail sender
+# Mail server is NOT configured here: set env vars SPRING_MAIL_HOST (and SPRING_MAIL_PORT,
+# SPRING_MAIL_USERNAME, SPRING_MAIL_PASSWORD, SPRING_MAIL_PROPERTIES_MAIL_SMTP_AUTH=true,
+# SPRING_MAIL_PROPERTIES_MAIL_SMTP_STARTTLS_ENABLE=true). Without a host, the email buttons stay disabled.
+# ---------------------------------------------------------------
+hrms:
+    company:
+        name: 'HRMS Demo Ltd.'
+        bankName: ''          # e.g. 'Dutch-Bangla Bank Ltd., Motijheel Branch'
+        accountNo: ''         # company account the salary is debited from
+    mail:
+        from: 'no-reply@hrms.local'
