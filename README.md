@@ -8,7 +8,7 @@
 ./gradlew bootRun        # http://localhost:8080
 ```
 
-Database is H2 file `devDb` (dev). **After pulling Day 1, delete `devDb.mv.db` once**
+Database is H2 file `devDb` (dev). **After pulling Day 1 (and again for Day 4 and Day 7), delete `devDb.mv.db` once**
 (Employee got new columns and `joinDate` is now a date) - the seed data is re-created on start.
 
 ## Demo accounts (dev only) - password for all: `Hrms@2026`
@@ -54,3 +54,28 @@ Menu: ছুটি (all roles), Settings -> ছুটির নীতি (Admin/
 5. Apply leave starting today, approve it -> dashboard "ছুটিতে" count +1, employee status ON_LEAVE, today's attendance shows ON_LEAVE. Cancel (HR) -> back to ACTIVE.
 6. Team calendar: manager sees team with type codes; employee sees department peers as dots.
 7. `hr`/`admin`: Leave -> সব আবেদন, সবার ব্যালেন্স; Settings -> ছুটির নীতি add/edit type. Nasrin (FEMALE) sees Maternity; Rahim does not.
+
+## Day 7 - Recruitment & Onboarding
+
+Menu: নিয়োগ (Kanban), অনবোর্ডিং, জনবল চাহিদা, আমার ইন্টারভিউ; Settings -> অনবোর্ডিং কাজ (checklist template).
+**Delete `devDb.mv.db` once** after pulling Day 7 (new tables + seed).
+
+Flow: Requisition (manager/HR) -> approve -> Job posting -> Candidate (Kanban: APPLIED -> SCREENING -> INTERVIEW -> OFFER -> HIRED)
+-> Interview + feedback -> Offer (printable letter) -> Accepted -> **Convert to employee** (creates Employee, history, salary structure,
+onboarding checklist, probation record, CV document). Requisition closes itself when all vacancies are filled.
+
+Rules: posting only from APPROVED requisition with free vacancies; moving to OFFER needs one COMPLETED interview with HIRE/HOLD;
+HIRED only via convert (cannot be dragged); one live (SENT/ACCEPTED) offer per candidate; interview times cannot clash for an interviewer;
+feedback only after the interview time, by the interviewer or HR/Admin; probation: confirm / extend (max 2 x 1-3 months) / not confirmed.
+Creating a login account for the new employee is still manual. "Not confirmed" only records the decision - exit process is Day 9.
+
+### Day 7 test checklist (seed data included)
+1. `hr`: Recruitment board shows 5 columns. Drag Tahmid APPLIED -> SCREENING (ok). Drag Farhana -> OFFER (red toast: needs interview). Drag anything to HIRED (not allowed).
+2. `manager` (karim): জনবল চাহিদা -> new request -> appears PENDING; he sees only his own. `hr`: approve it, reject another without note (error).
+3. `hr`: Postings -> new posting from the approved requisition; add a candidate with a PDF CV (>2 MB or .exe -> error; same email on same posting -> error).
+4. `manager`: আমার ইন্টারভিউ -> Imran's interview (time passed) -> give feedback HIRE 4/5 -> status COMPLETED. Feedback on a future interview -> error.
+5. `hr`: Farhana -> schedule interview (same interviewer, overlapping time -> error). Sadia (completed HIRE) -> create offer -> printable letter -> "accepted".
+6. Mahfuz (offer ACCEPTED) -> Convert (pick manager/grade) -> redirected to onboarding checklist; employee list has Mahfuz (PROBATION), profile has history + CV document.
+7. Convert again / reject candidate with live offer (offer withdrawn) / decline offer (candidate REJECTED) behave as described.
+8. Onboarding: tick tasks, add a custom task, issue/return an asset (same serial twice -> error). Nasrin: probation OVERDUE -> extend (reason needed) / confirm -> type becomes FULL_TIME + history line.
+9. Delete requisition-linked data checks: an interviewer or converted employee cannot be deleted from Employee screen.

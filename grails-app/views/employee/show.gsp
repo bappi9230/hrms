@@ -9,6 +9,7 @@
     <h1 class="page-title mb-0">কর্মী প্রোফাইল</h1>
     <div>
         <g:if test="${canEdit}">
+            <g:link controller="onboarding" action="show" id="${employee.id}" class="btn btn-outline-primary"><i class="bi bi-clipboard-check"></i> অনবোর্ডিং</g:link>
             <g:link action="edit" id="${employee.id}" class="btn btn-primary"><i class="bi bi-pencil"></i> সম্পাদনা</g:link>
         </g:if>
         <sec:ifAnyGranted roles="ROLE_ADMIN,ROLE_HR,ROLE_MANAGER">

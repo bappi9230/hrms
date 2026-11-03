@@ -37,7 +37,13 @@
     </sec:ifAnyGranted>
 
     <sec:ifAnyGranted roles="ROLE_ADMIN,ROLE_HR">
-        <g:render template="/layouts/menuItem" model="[label: 'নিয়োগ', icon: 'bi-person-plus', controller: 'recruitment', soon: 7]"/>
+        <g:render template="/layouts/menuItem" model="[label: 'নিয়োগ (Kanban)', icon: 'bi-person-plus', controller: 'recruitment']"/>
+        <g:render template="/layouts/menuItem" model="[label: 'অনবোর্ডিং', icon: 'bi-clipboard-check', controller: 'onboarding']"/>
+    </sec:ifAnyGranted>
+
+    <sec:ifAnyGranted roles="ROLE_ADMIN,ROLE_HR,ROLE_MANAGER">
+        <g:render template="/layouts/menuItem" model="[label: 'জনবল চাহিদা', icon: 'bi-person-lines-fill', controller: 'requisition']"/>
+        <g:render template="/layouts/menuItem" model="[label: 'আমার ইন্টারভিউ', icon: 'bi-chat-square-text', controller: 'candidate', action: 'myInterviews']"/>
     </sec:ifAnyGranted>
 
     <sec:ifAnyGranted roles="ROLE_ADMIN,ROLE_HR,ROLE_MANAGER">
@@ -70,6 +76,7 @@
         <g:render template="/layouts/menuItem" model="[label: 'ছুটির নীতি', icon: 'bi-airplane-engines', controller: 'master', linkParams: [type: 'leavetype']]"/>
         <g:render template="/layouts/menuItem" model="[label: 'ভাতা/কর্তনের খাত', icon: 'bi-sliders', controller: 'master', linkParams: [type: 'salaryhead']]"/>
         <g:render template="/layouts/menuItem" model="[label: 'শিফট', icon: 'bi-clock', controller: 'master', linkParams: [type: 'shift']]"/>
+        <g:render template="/layouts/menuItem" model="[label: 'অনবোর্ডিং কাজ', icon: 'bi-list-check', controller: 'master', linkParams: [type: 'onboardingtemplate']]"/>
     </sec:ifAnyGranted>
 
 </ul>

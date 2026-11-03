@@ -1,6 +1,7 @@
 package hrms
 
 import java.time.LocalDate
+import java.time.LocalDateTime
 import java.time.LocalTime
 
 class BootStrap {
@@ -11,6 +12,7 @@ class BootStrap {
     SalaryService salaryService
     LoanService loanService
     BonusService bonusService
+    OnboardingService onboardingService
     private Timer leaveTimer
 
     static final String DEMO_PASSWORD = 'Hrms@2026'
@@ -24,6 +26,7 @@ class BootStrap {
             seedLeave()
             seedPayroll()
             seedPayrollDay6()
+            seedRecruitment()
             leaveService.syncStatus()
             salaryService.syncProfileSalaries()
         }
@@ -257,6 +260,105 @@ class BootStrap {
                         amount: 5000, note: 'নমুনা', createdBy: 'system').save(failOnError: true)
             }
         }
+    }
+
+    /**
+     * Day 7: অনবোর্ডিং টেমপ্লেট, একটি অনুমোদিত + একটি অপেক্ষমাণ জনবল চাহিদা, একটি খোলা বিজ্ঞপ্তি এবং প্রতিটি ধাপে নমুনা প্রার্থী।
+     *  - Imran: ইন্টারভিউ হয়ে গেছে কিন্তু ফিডব্যাক বাকি (ইন্টারভিউয়ার: Karim = manager ইউজার)
+     *  - Sadia: ইন্টারভিউ সম্পন্ন (HIRE) -> অফার তৈরি করা যাবে
+     *  - Mahfuz: অফার গৃহীত -> কর্মীতে রূপান্তর করা যাবে
+     *  - Nasrin: পরীক্ষাকালের মেয়াদ পার (সিদ্ধান্ত বাকি), অসম্পূর্ণ অনবোর্ডিং চেকলিস্ট, একটি ল্যাপটপ বরাদ্দ
+     */
+    private void seedRecruitment() {
+        if (OnboardingTemplate.count() == 0) {
+            // title, category, owner, dueAfterDays
+            [['NID ও পাসপোর্ট সাইজ ছবি জমা', 'DOCUMENTS', 'HR', 0],
+             ['শিক্ষাগত সনদের কপি জমা', 'DOCUMENTS', 'HR', 3],
+             ['নিয়োগপত্র/চুক্তিপত্রে স্বাক্ষর', 'DOCUMENTS', 'HR', 1],
+             ['ব্যাংক/মোবাইল ওয়ালেটের তথ্য সংগ্রহ', 'DOCUMENTS', 'ACCOUNTS', 3],
+             ['অফিসিয়াল ইমেইল অ্যাকাউন্ট তৈরি', 'IT', 'IT', 0],
+             ['ল্যাপটপ/ডিভাইস বুঝিয়ে দেওয়া', 'IT', 'IT', 0],
+             ['বসার জায়গা ও ID কার্ড', 'ADMIN', 'ADMIN', 2],
+             ['কোম্পানি পরিচিতি ও নীতিমালা ওরিয়েন্টেশন', 'TRAINING', 'HR', 1],
+             ['ম্যানেজারের সাথে প্রথম সপ্তাহের পরিকল্পনা', 'HR', 'MANAGER', 5]].eachWithIndex { r, i ->
+                new OnboardingTemplate(title: r[0], category: r[1], ownerRole: r[2], dueAfterDays: r[3], sortOrder: (i + 1) * 10).save(failOnError: true)
+            }
+        }
+
+        Employee karim = Employee.findByEmail('karim@example.com')
+        Employee nasrin = Employee.findByEmail('nasrin@example.com')
+
+        // পরীক্ষাকাল, চেকলিস্ট ও সম্পদ - Nasrin (PROBATION ধরনের কর্মী)
+        if (nasrin && ProbationRecord.count() == 0 && nasrin.employeeType == 'PROBATION') {
+            onboardingService.startProbation(nasrin, nasrin.joinDate, 3, 'FULL_TIME')
+        }
+        if (nasrin && OnboardingTask.count() == 0) {
+            onboardingService.startOnboarding(nasrin)
+            OnboardingTask.findAllByEmployee(nasrin, [sort: 'sortOrder', max: 6]).each { OnboardingTask t ->
+                t.done = true
+                t.doneBy = 'hr'
+                t.doneAt = LocalDateTime.now().minusDays(100)
+                t.save(failOnError: true)
+            }
+        }
+        if (nasrin && AssetAllocation.count() == 0) {
+            new AssetAllocation(employee: nasrin, assetType: 'LAPTOP', assetName: 'Dell Latitude 5440', serialNo: 'DL-5440-0007',
+                    issuedDate: nasrin.joinDate, issuedBy: 'system').save(failOnError: true)
+        }
+
+        if (ManpowerRequisition.count() > 0) return
+        LocalDate today = LocalDate.now(AttendanceService.ZONE)
+        LocalDateTime now = LocalDateTime.now(AttendanceService.ZONE)
+        Department it1 = Department.findByName('IT')
+        Department hr = Department.findByName('HR')
+        Designation dev = Designation.findByTitle('Software Engineer')
+        Designation exec = Designation.findByTitle('Executive')
+        Branch head = Branch.findByName('Head Office')
+        if (!it1 || !hr || !dev || !exec) return
+
+        ManpowerRequisition r1 = new ManpowerRequisition(title: 'Software Engineer (Backend)', department: it1, designation: dev, branch: head,
+                vacancies: 2, employeeType: 'FULL_TIME', minSalary: 50000, maxSalary: 70000, expectedJoinDate: today.plusDays(45),
+                justification: 'নতুন প্রজেক্টের জন্য ২ জন ব্যাকএন্ড ডেভেলপার দরকার।', status: 'APPROVED', requestedBy: 'manager',
+                decidedBy: 'hr', decidedAt: now.minusDays(10), decisionNote: 'অনুমোদিত (নমুনা)').save(failOnError: true)
+        new ManpowerRequisition(title: 'HR Executive', department: hr, designation: exec, vacancies: 1, employeeType: 'FULL_TIME',
+                minSalary: 35000, maxSalary: 45000, expectedJoinDate: today.plusDays(60),
+                justification: 'নিয়োগ ও অনবোর্ডিংয়ের কাজ বাড়ছে, একজন সহায়ক দরকার।', status: 'PENDING', requestedBy: 'manager').save(failOnError: true)
+
+        JobPosting post = new JobPosting(requisition: r1, title: 'Software Engineer (Backend)',
+                description: 'REST API, ডাটাবেস ডিজাইন ও কোড রিভিউসহ ব্যাকএন্ড সার্ভিস তৈরির দায়িত্ব।',
+                requirements: 'Java/Groovy বা সমমানের অভিজ্ঞতা, SQL জ্ঞান, ২+ বছরের অভিজ্ঞতা।', location: 'Head Office, Motijheel',
+                deadline: today.plusDays(30), postedBy: 'hr').save(failOnError: true)
+
+        // নাম, ইমেইল, ধাপ, সূত্র, প্রত্যাশিত বেতন, অভিজ্ঞতা, ধাপে কত দিন
+        Map<String, Candidate> cands = [:]
+        [['Tahmid Hasan', 'tahmid@example.com', 'APPLIED', 'WEBSITE', 55000, 2.0, 1],
+         ['Farhana Yasmin', 'farhana@example.com', 'SCREENING', 'LINKEDIN', 60000, 3.0, 3],
+         ['Imran Chowdhury', 'imran@example.com', 'INTERVIEW', 'REFERRAL', 65000, 4.0, 2],
+         ['Sadia Islam', 'sadia@example.com', 'INTERVIEW', 'JOB_PORTAL', 62000, 3.5, 5],
+         ['Mahfuz Alam', 'mahfuz@example.com', 'OFFER', 'REFERRAL', 60000, 5.0, 4],
+         ['Rubel Mia', 'rubel@example.com', 'REJECTED', 'WALK_IN', 120000, 1.0, 6]].each { r ->
+            cands[r[0] as String] = new Candidate(name: r[0], email: r[1], phone: '017' + (10000000 + (r[0].hashCode() & 0xFFFFF)).toString().take(8),
+                    jobPosting: post, currentStage: r[2], source: r[3], expectedSalary: r[4], experienceYears: r[5],
+                    stageChangedAt: now.minusDays(r[6] as int), createdBy: 'hr',
+                    rejectReason: r[2] == 'REJECTED' ? 'বেতনের প্রত্যাশা বাজেটের অনেক বেশি।' : null).save(failOnError: true)
+        }
+
+        // Imran: ২ ঘণ্টা আগে ইন্টারভিউ হয়েছে - ফিডব্যাক বাকি (Karim দেবে)
+        new Interview(candidate: cands['Imran Chowdhury'], roundNo: 1, roundName: 'Technical', scheduledAt: now.minusHours(2), durationMinutes: 45,
+                mode: 'ONSITE', location: 'Meeting Room 2', interviewer: karim, scheduledBy: 'hr').save(failOnError: true)
+        // Sadia: সম্পন্ন, HIRE
+        new Interview(candidate: cands['Sadia Islam'], roundNo: 1, roundName: 'Technical', scheduledAt: now.minusDays(2), durationMinutes: 60,
+                mode: 'ONLINE', location: 'Google Meet', interviewer: karim, status: 'COMPLETED', rating: 4, recommendation: 'HIRE',
+                feedback: 'সমস্যা সমাধানে ভালো, ডাটাবেস জ্ঞান শক্ত। টিম কালচারে মানানসই।', feedbackAt: now.minusDays(2), feedbackBy: 'manager',
+                scheduledBy: 'hr').save(failOnError: true)
+        // Mahfuz: সম্পন্ন + গৃহীত অফার (রূপান্তরের জন্য প্রস্তুত)
+        new Interview(candidate: cands['Mahfuz Alam'], roundNo: 1, roundName: 'Technical', scheduledAt: now.minusDays(7), durationMinutes: 60,
+                mode: 'ONSITE', location: 'Meeting Room 1', interviewer: karim, status: 'COMPLETED', rating: 5, recommendation: 'HIRE',
+                feedback: 'অত্যন্ত শক্তিশালী ব্যাকএন্ড অভিজ্ঞতা, দ্রুত শিখতে পারে।', feedbackAt: now.minusDays(7), feedbackBy: 'manager',
+                scheduledBy: 'hr').save(failOnError: true)
+        new JobOffer(candidate: cands['Mahfuz Alam'], department: it1, designation: dev, branch: head, employeeType: 'FULL_TIME', salary: 60000,
+                joinDate: today.plusDays(14), probationMonths: 3, validUntil: today.plusDays(7), status: 'ACCEPTED', offeredBy: 'hr',
+                decidedAt: now.minusDays(1), decisionNote: 'প্রার্থী ফোনে গ্রহণ করেছেন').save(failOnError: true)
     }
 
     private void seedLastMonthActivity() {

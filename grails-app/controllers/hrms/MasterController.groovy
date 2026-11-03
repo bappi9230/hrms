@@ -51,7 +51,15 @@ class MasterController {
                 [name: 'calcType', label: 'হিসাবের ধরন (FIXED = টাকা, PERCENT_BASIC = বেসিকের %)', required: true, select: SalaryHead.CALC_TYPES],
                 [name: 'defaultValue', label: 'ডিফল্ট মান (টাকা বা শতাংশ)', required: true, number: true],
                 [name: 'active', label: 'সক্রিয়', checkbox: true]],
-                usedBy: { SalaryHead h -> EmployeeSalaryHead.countByHead(h) }, usedLabel: 'কর্মীর বেতন কাঠামোতে']
+                usedBy: { SalaryHead h -> EmployeeSalaryHead.countByHead(h) }, usedLabel: 'কর্মীর বেতন কাঠামোতে'],
+        onboardingtemplate: [clazz: OnboardingTemplate, title: 'অনবোর্ডিং কাজ', prop: 'onboardingTemplate', order: 'sortOrder', fields: [
+                [name: 'title', label: 'কাজের নাম', required: true],
+                [name: 'category', label: 'ধরন', required: true, select: OnboardingTemplate.CATEGORIES],
+                [name: 'ownerRole', label: 'দায়িত্বপ্রাপ্ত বিভাগ', required: true, select: OnboardingTemplate.OWNERS],
+                [name: 'dueAfterDays', label: 'যোগদানের কত দিনের মধ্যে', required: true, number: true],
+                [name: 'sortOrder', label: 'ক্রম (ছোট সংখ্যা আগে)', required: true, number: true],
+                [name: 'active', label: 'নতুন কর্মীর চেকলিস্টে যোগ হবে', checkbox: true]],
+                usedBy: { OnboardingTemplate t -> 0 }, usedLabel: '']
     ]
 
     def index() {

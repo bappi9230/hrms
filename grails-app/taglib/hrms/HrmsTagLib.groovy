@@ -108,4 +108,39 @@ class HrmsTagLib {
         else if (v > 0) out << '+ ' << text
         else out << '—'
     }
+
+    // ------------------------------------------------------------------ Day 7: নিয়োগ ও অনবোর্ডিং
+    private static final Map<String, Map<String, List<String>>> RECRUIT_BADGES = [
+        requisition: [PENDING: ['warning text-dark', 'অপেক্ষমাণ'], APPROVED: ['success', 'অনুমোদিত'], REJECTED: ['danger', 'প্রত্যাখ্যাত'],
+                      CLOSED: ['secondary', 'বন্ধ'], CANCELLED: ['secondary', 'প্রত্যাহার']],
+        posting    : [OPEN: ['success', 'খোলা'], CLOSED: ['secondary', 'বন্ধ']],
+        stage      : [APPLIED: ['secondary', 'আবেদন'], SCREENING: ['info text-dark', 'বাছাই'], INTERVIEW: ['primary', 'ইন্টারভিউ'],
+                      OFFER: ['warning text-dark', 'অফার'], HIRED: ['success', 'নিয়োগ'], REJECTED: ['danger', 'প্রত্যাখ্যাত']],
+        interview  : [SCHEDULED: ['primary', 'নির্ধারিত'], COMPLETED: ['success', 'সম্পন্ন'], CANCELLED: ['secondary', 'বাতিল']],
+        offer      : [SENT: ['warning text-dark', 'পাঠানো'], ACCEPTED: ['success', 'গৃহীত'], DECLINED: ['danger', 'প্রত্যাখ্যাত'],
+                      WITHDRAWN: ['secondary', 'প্রত্যাহার']],
+        recommend  : [HIRE: ['success', 'HIRE'], HOLD: ['warning text-dark', 'HOLD'], REJECT: ['danger', 'REJECT']],
+        probation  : [ONGOING: ['primary', 'চলছে'], RUNNING: ['primary', 'চলছে'], EXPIRING: ['warning text-dark', 'শিগগির শেষ'],
+                      OVERDUE: ['danger', 'মেয়াদ পার - সিদ্ধান্ত বাকি'], CONFIRMED: ['success', 'স্থায়ী'], NOT_CONFIRMED: ['dark', 'স্থায়ী হয়নি']],
+        asset      : [ISSUED: ['primary', 'বরাদ্দ'], RETURNED: ['secondary', 'ফেরত']]
+    ]
+
+    /** kind = requisition | posting | stage | interview | offer | recommend | probation | asset */
+    def recruitBadge = { attrs ->
+        List<String> v = RECRUIT_BADGES[attrs.kind as String]?.get(attrs.status as String) ?: ['light text-dark', (attrs.status ?: '') as String]
+        out << "<span class=\"badge text-bg-${v[0]}\">${v[1]}</span>"
+    }
+
+    private static final Map<String, String> SOURCE_BN = [WEBSITE: 'ওয়েবসাইট', REFERRAL: 'রেফারেল', LINKEDIN: 'LinkedIn', JOB_PORTAL: 'জব পোর্টাল',
+                                                           WALK_IN: 'সরাসরি এসেছেন', OTHER: 'অন্যান্য']
+
+    def sourceName = { attrs ->
+        out << (SOURCE_BN[attrs.value as String] ?: (attrs.value ?: '—')).toString().encodeAsHTML()
+    }
+
+    /** তারিখ+সময়: dd-MM-yyyy HH:mm */
+    def dateTime = { attrs ->
+        def v = attrs.value
+        out << (v instanceof java.time.LocalDateTime ? v.format(java.time.format.DateTimeFormatter.ofPattern('dd-MM-yyyy HH:mm')) : '—')
+    }
 }

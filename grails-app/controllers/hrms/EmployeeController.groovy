@@ -208,6 +208,11 @@ class EmployeeController {
             redirect(action: 'show', id: id)
             return
         }
+        if (Interview.countByInterviewer(employee) > 0 || Candidate.countByEmployee(employee) > 0) {
+            flash.error = 'এই কর্মী ইন্টারভিউয়ার হিসেবে আছেন বা নিয়োগের রেকর্ডে যুক্ত, তাই মোছা যাবে না। চাকরি শেষ হলে স্ট্যাটাস INACTIVE করুন।'
+            redirect(action: 'show', id: id)
+            return
+        }
         String name = employee.name
         employmentService.deleteEmployee(employee)
         flash.success = "কর্মী '${name}' মুছে ফেলা হয়েছে।".toString()
