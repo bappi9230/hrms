@@ -3,7 +3,7 @@ package hrms
 import grails.plugin.springsecurity.annotation.Secured
 
 /**
- * মাস্টার ডেটার সাধারণ CRUD: শাখা, গ্রেড, কস্ট সেন্টার, শিফট।
+ * মাস্টার ডেটার সাধারণ CRUD: শাখা, গ্রেড, কস্ট সেন্টার, শিফট, ছুটির নীতি, বেতনের খাত।
  * URL: /master/branch, /master/grade, /master/costcenter, /master/shift (UrlMappings এ আছে)।
  * Day 3 এ shift/holiday যোগ করতে শুধু TYPES এ নতুন লাইন দিলেই হবে।
  */
@@ -43,7 +43,15 @@ class MasterController {
                 [name: 'approvalLevels', label: 'অনুমোদনের ধাপ (1 = ম্যানেজার, 2 = ম্যানেজার + HR)', required: true, select: [1, 2]],
                 [name: 'gender', label: 'শুধু কার জন্য', select: LeaveType.GENDERS, blankLabel: 'সবার জন্য'],
                 [name: 'active', label: 'সক্রিয়', checkbox: true]],
-                usedBy: { LeaveType t -> LeaveRequest.countByLeaveType(t) + LeaveBalance.countByLeaveType(t) }, usedLabel: 'ছুটির আবেদন/ব্যালেন্সে']
+                usedBy: { LeaveType t -> LeaveRequest.countByLeaveType(t) + LeaveBalance.countByLeaveType(t) }, usedLabel: 'ছুটির আবেদন/ব্যালেন্সে'],
+        salaryhead: [clazz: SalaryHead, title: 'ভাতা/কর্তনের খাত', prop: 'salaryHead', order: 'headType', fields: [
+                [name: 'code', label: 'কোড (যেমন MOB)', required: true],
+                [name: 'name', label: 'খাতের নাম', required: true],
+                [name: 'headType', label: 'ধরন (EARNING = ভাতা, DEDUCTION = কর্তন)', required: true, select: SalaryHead.TYPES],
+                [name: 'calcType', label: 'হিসাবের ধরন (FIXED = টাকা, PERCENT_BASIC = বেসিকের %)', required: true, select: SalaryHead.CALC_TYPES],
+                [name: 'defaultValue', label: 'ডিফল্ট মান (টাকা বা শতাংশ)', required: true, number: true],
+                [name: 'active', label: 'সক্রিয়', checkbox: true]],
+                usedBy: { SalaryHead h -> EmployeeSalaryHead.countByHead(h) }, usedLabel: 'কর্মীর বেতন কাঠামোতে']
     ]
 
     def index() {

@@ -21,6 +21,7 @@ class EmployeeController {
     def attendanceService
     def leaveService
     def employmentService
+    def salaryService
 
     // ======================================================================= list + search/filter
     @Secured(['ROLE_ADMIN', 'ROLE_HR', 'ROLE_MANAGER'])
@@ -99,6 +100,7 @@ class EmployeeController {
         Map model = [
             employee    : employee,
             canSeeSalary: accessService.canSeeSalary(employee),
+            salaryStructure: accessService.canSeeSalary(employee) ? salaryService.currentStructure(employee) : null,
             canEdit     : canEdit,
             documents   : documents,
             canSeeDocs  : canSeeDocs,
@@ -193,6 +195,11 @@ class EmployeeController {
         }
         if (Employee.countByReportingManager(employee) > 0) {
             flash.error = 'এই কর্মীর অধীনে অন্য কর্মী আছে, আগে তাদের ম্যানেজার পরিবর্তন করুন।'
+            redirect(action: 'show', id: id)
+            return
+        }
+        if (PayrollLine.countByEmployee(employee) > 0) {
+            flash.error = 'এই কর্মী পে-রোলের হিসাবে আছেন, তাই মোছা যাবে না। চাকরি শেষ হলে স্ট্যাটাস INACTIVE করুন।'
             redirect(action: 'show', id: id)
             return
         }

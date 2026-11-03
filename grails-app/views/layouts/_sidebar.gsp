@@ -19,7 +19,11 @@
     <g:render template="/layouts/menuItem" model="[label: 'ছুটি', icon: 'bi-airplane', controller: 'leave']"/>
 
     <sec:ifAnyGranted roles="ROLE_ADMIN,ROLE_ACCOUNTANT">
-        <g:render template="/layouts/menuItem" model="[label: 'বেতন', icon: 'bi-cash-coin', controller: 'payroll', soon: 5]"/>
+        <g:render template="/layouts/menuItem" model="[label: 'বেতন (পে-রোল)', icon: 'bi-cash-coin', controller: 'payroll']"/>
+    </sec:ifAnyGranted>
+
+    <sec:ifAnyGranted roles="ROLE_ADMIN,ROLE_HR,ROLE_ACCOUNTANT">
+        <g:render template="/layouts/menuItem" model="[label: 'বেতন কাঠামো', icon: 'bi-cash-stack', controller: 'salary']"/>
     </sec:ifAnyGranted>
 
     <sec:ifAnyGranted roles="ROLE_EMPLOYEE">
@@ -58,6 +62,7 @@
         <g:render template="/layouts/menuItem" model="[label: 'গ্রেড', icon: 'bi-layers', controller: 'master', linkParams: [type: 'grade']]"/>
         <g:render template="/layouts/menuItem" model="[label: 'কস্ট সেন্টার', icon: 'bi-piggy-bank', controller: 'master', linkParams: [type: 'costcenter']]"/>
         <g:render template="/layouts/menuItem" model="[label: 'ছুটির নীতি', icon: 'bi-airplane-engines', controller: 'master', linkParams: [type: 'leavetype']]"/>
+        <g:render template="/layouts/menuItem" model="[label: 'ভাতা/কর্তনের খাত', icon: 'bi-sliders', controller: 'master', linkParams: [type: 'salaryhead']]"/>
         <g:render template="/layouts/menuItem" model="[label: 'শিফট', icon: 'bi-clock', controller: 'master', linkParams: [type: 'shift']]"/>
     </sec:ifAnyGranted>
 

@@ -107,7 +107,19 @@
                             <dt class="col-sm-4">মাসিক বেতন</dt><dd class="col-sm-8 fs-5 fw-semibold"><hrms:money value="${employee.salary}"/></dd>
                             <dt class="col-sm-4">পদবির মূল বেতন</dt><dd class="col-sm-8"><hrms:money value="${employee.designation?.baseSalary}"/></dd>
                         </dl>
-                        <div class="text-muted small">বেতন কাঠামো (বেসিক, বাড়িভাড়া, চিকিৎসা...) Day 5-এ আসছে।</div>
+                        <g:if test="${salaryStructure}">
+                            <hr>
+                            <h6 class="mb-2">বেতন কাঠামো <span class="small text-muted fw-normal">(কার্যকর <hrms:date value="${salaryStructure.effectiveFrom}"/>)</span></h6>
+                            <dl class="row profile-list mb-2">
+                                <dt class="col-sm-4">বেসিক</dt><dd class="col-sm-8"><hrms:money value="${salaryStructure.basic}"/></dd>
+                                <dt class="col-sm-4">বাড়ি ভাড়া</dt><dd class="col-sm-8"><hrms:money value="${salaryStructure.houseRent}"/></dd>
+                                <dt class="col-sm-4">চিকিৎসা ভাতা</dt><dd class="col-sm-8"><hrms:money value="${salaryStructure.medical}"/></dd>
+                                <dt class="col-sm-4">যাতায়াত ভাতা</dt><dd class="col-sm-8"><hrms:money value="${salaryStructure.conveyance}"/></dd>
+                            </dl>
+                        </g:if>
+                        <sec:ifAnyGranted roles="ROLE_ADMIN,ROLE_HR,ROLE_ACCOUNTANT">
+                            <g:link controller="salary" action="show" id="${employee.id}" class="btn btn-sm btn-outline-primary"><i class="bi bi-cash-stack"></i> বেতন কাঠামো ও ইনক্রিমেন্ট</g:link>
+                        </sec:ifAnyGranted>
                     </div>
                 </g:if>
 

@@ -75,4 +75,28 @@ class HrmsTagLib {
         String v = (attrs.value ?: '') as String
         out << v.toLowerCase().split('_').collect { it.capitalize() }.join(' ').encodeAsHTML()
     }
+
+    private static final List<String> MONTHS_BN = ['জানুয়ারি', 'ফেব্রুয়ারি', 'মার্চ', 'এপ্রিল', 'মে', 'জুন', 'জুলাই',
+                                                   'আগস্ট', 'সেপ্টেম্বর', 'অক্টোবর', 'নভেম্বর', 'ডিসেম্বর']
+
+    /** মাসের বাংলা নাম (১-১২) */
+    def monthName = { attrs ->
+        Integer m = attrs.value as Integer
+        out << ((m != null && m >= 1 && m <= 12) ? MONTHS_BN[m - 1] : '—')
+    }
+
+    /** পে-রোলের অবস্থা ব্যাজ */
+    def payrollStatus = { attrs ->
+        String status = attrs.status as String
+        out << (status == 'FINALIZED' ? '<span class="badge text-bg-success">চূড়ান্ত</span>' : '<span class="badge text-bg-warning text-dark">খসড়া (DRAFT)</span>')
+    }
+
+    /** টাকা, ঋণাত্মক হলে লাল ও চিহ্নসহ */
+    def signedMoney = { attrs ->
+        BigDecimal v = (attrs.value ?: 0) as BigDecimal
+        String text = new DecimalFormat('#,##0').format(v.abs()) + ' ৳'
+        if (v < 0) out << '<span class="text-danger">- ' << text << '</span>'
+        else if (v > 0) out << '+ ' << text
+        else out << '—'
+    }
 }

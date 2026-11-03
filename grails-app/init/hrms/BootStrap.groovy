@@ -8,6 +8,7 @@ class BootStrap {
     UserService userService
     EmploymentService employmentService
     LeaveService leaveService
+    SalaryService salaryService
     private Timer leaveTimer
 
     static final String DEMO_PASSWORD = 'Hrms@2026'
@@ -19,7 +20,9 @@ class BootStrap {
             seedSecurity()
             seedAttendance()
             seedLeave()
+            seedPayroll()
             leaveService.syncStatus()
+            salaryService.syncProfileSalaries()
         }
 
         // Day 4: প্রতি ঘণ্টায় ON_LEAVE স্ট্যাটাস সিঙ্ক (রাত পেরোলে নতুন দিনের জন্য)
@@ -27,7 +30,7 @@ class BootStrap {
         leaveTimer.schedule(new TimerTask() {
             void run() {
                 try {
-                    Employee.withNewSession { Employee.withTransaction { leaveService.syncStatus() } }
+                    Employee.withNewSession { Employee.withTransaction { leaveService.syncStatus(); salaryService.syncProfileSalaries() } }
                 } catch (Throwable t) {
                     org.slf4j.LoggerFactory.getLogger('hrms.BootStrap').warn('Leave status sync failed: ' + t.message)
                 }
@@ -184,6 +187,115 @@ class BootStrap {
             while (leaveService.isOffDay(start)) start = start.plusDays(1)
             leaveService.apply(rahim, LeaveType.findByCode('CL'), start, start.plusDays(1), 'পারিবারিক অনুষ্ঠান')
         }
+    }
+
+    /**
+     * Day 5: বেতন কাঠামো, ভাতা/কর্তনের খাত এবং গত মাসের নমুনা উপস্থিতি/ছুটি/ওভারটাইম।
+     * গত মাসের পে-রোল চালালে নানা অবস্থা (অনুপস্থিতি, দেরি, বিনা বেতন ছুটি, OT) দেখা যাবে।
+     */
+    private void seedPayroll() {
+        if (SalaryHead.count() == 0) {
+            // code, name, type, calc, value
+            [['MOB', 'মোবাইল ভাতা', 'EARNING', 'FIXED', 500],
+             ['TIF', 'টিফিন ভাতা', 'EARNING', 'FIXED', 1000],
+             ['PERF', 'পারফরম্যান্স ভাতা', 'EARNING', 'PERCENT_BASIC', 10],
+             ['CAN', 'ক্যান্টিন কর্তন', 'DEDUCTION', 'FIXED', 500]].each { r ->
+                new SalaryHead(code: r[0], name: r[1], headType: r[2], calcType: r[3], defaultValue: r[4]).save(failOnError: true)
+            }
+        }
+
+        salaryService.ensureAllStructures()
+
+        if (EmployeeSalaryHead.count() == 0) {
+            Employee rahim = Employee.findByEmail('rahim@example.com')
+            Employee karim = Employee.findByEmail('karim@example.com')
+            Employee sumaiya = Employee.findByEmail('sumaiya@example.com')
+            if (rahim) {
+                salaryService.assignHead(rahim, SalaryHead.findByCode('MOB'), null)
+                salaryService.assignHead(rahim, SalaryHead.findByCode('CAN'), null)
+            }
+            if (karim) {
+                salaryService.assignHead(karim, SalaryHead.findByCode('MOB'), null)
+                salaryService.assignHead(karim, SalaryHead.findByCode('TIF'), null)
+                salaryService.assignHead(karim, SalaryHead.findByCode('PERF'), null)
+            }
+            if (sumaiya) salaryService.assignHead(sumaiya, SalaryHead.findByCode('TIF'), 800)
+        }
+
+        if (OvertimeRequest.count() == 0 && PayrollRun.count() == 0) seedLastMonthActivity()
+    }
+
+    private void seedLastMonthActivity() {
+        LocalDate today = LocalDate.now(AttendanceService.ZONE)
+        java.time.YearMonth lastMonth = java.time.YearMonth.from(today).minusMonths(1)
+        Shift shift = Shift.list(sort: 'id', max: 1)[0]
+        if (shift == null) return
+
+        List<LocalDate> workDays = (1..lastMonth.lengthOfMonth()).collect { lastMonth.atDay(it) }
+                .findAll { LocalDate d -> d.dayOfWeek != java.time.DayOfWeek.FRIDAY }
+
+        Employee rahim = Employee.findByEmail('rahim@example.com')
+        Employee karim = Employee.findByEmail('karim@example.com')
+        Employee sumaiya = Employee.findByEmail('sumaiya@example.com')
+        Employee nasrin = Employee.findByEmail('nasrin@example.com')
+
+        // কোন কর্মীর কোন (০ থেকে গোনা) কর্মদিবস অনুপস্থিত / দেরি
+        Map<Employee, Map> plan = [:]
+        if (rahim)   plan[rahim]   = [absent: [4], late: [1, 8, 15]]            // ১ অনুপস্থিত, ৩ দেরি (= ১ দিনের কর্তন)
+        if (karim)   plan[karim]   = [absent: [], late: []]                     // নিখুঁত
+        if (sumaiya) plan[sumaiya] = [absent: [], late: [6]]
+        if (nasrin)  plan[nasrin]  = [absent: [10], late: [2, 3]]
+
+        // ছুটি: সুমাইয়া ১ দিন বেতনসহ (CL), রহিম ২ দিন বিনা বেতন (LWP) - নির্দিষ্ট কর্মদিবসগুলো
+        Map<Employee, List> leavePlan = [:]
+        if (sumaiya) leavePlan[sumaiya] = [LeaveType.findByCode('CL'), [workDays[12]]]
+        if (rahim)   leavePlan[rahim]   = [LeaveType.findByCode('LWP'), [workDays[18], workDays[19]]]
+
+        // একই কর্মীর ছুটির দিনে উপস্থিতি বসাব না
+        Map<Long, Set<LocalDate>> leaveByEmp = [:]
+        leavePlan.each { Employee e, List v ->
+            leaveByEmp[e.id] = (v[1] as List<LocalDate>) as Set<LocalDate>
+        }
+
+        plan.each { Employee e, Map p ->
+            workDays.eachWithIndex { LocalDate d, int idx ->
+                if (leaveByEmp[e.id]?.contains(d)) return
+                if (d.isBefore(e.joinDate)) return
+                if (Attendance.findByEmployeeAndAttDate(e, d) != null) return
+                if ((p.absent as List).contains(idx)) return        // কোনো রেকর্ড নেই = অনুপস্থিত
+                boolean late = (p.late as List).contains(idx)
+                new Attendance(employee: e, attDate: d, shift: shift, source: 'MANUAL',
+                        status: late ? 'LATE' : 'PRESENT',
+                        checkIn: late ? LocalTime.of(9, 40) : LocalTime.of(8, 58),
+                        checkOut: LocalTime.of(18, 3),
+                        lateMinutes: late ? 40 : 0).save(failOnError: true)
+            }
+        }
+
+        // অনুমোদিত ছুটির আবেদন (সরাসরি তৈরি - আবেদনের ৩০ দিনের নিয়ম এখানে লাগে না) ও ব্যালেন্সে ব্যবহার
+        leavePlan.each { Employee e, List v ->
+            LeaveType type = v[0] as LeaveType
+            List<LocalDate> days = v[1] as List<LocalDate>
+            if (type == null) return
+            LeaveRequest req = new LeaveRequest(employee: e, leaveType: type, fromDate: days.first(), toDate: days.last(),
+                    days: days.size(), reason: 'নমুনা ছুটি (Day 5 seed)', status: 'APPROVED',
+                    stages: e.reportingManager ? 'MANAGER' : 'HR').save(failOnError: true, flush: true)
+            LeaveBalance bal = leaveService.ensureBalance(e, type, days.first().year)
+            bal.used = bal.used + days.size()
+            bal.save(failOnError: true)
+            days.each { LocalDate d ->
+                new Attendance(employee: e, attDate: d, status: 'ON_LEAVE', source: 'MANUAL', remarks: "LEAVE#${req.id}".toString())
+                        .save(failOnError: true)
+            }
+        }
+
+        // অনুমোদিত ওভারটাইম: রহিম ৩.৫ ঘণ্টা (২+১.৫), করিম ৩ ঘণ্টা; একটি অপেক্ষমাণ (পে-রোলে ধরা হবে না)
+        if (rahim) {
+            new OvertimeRequest(employee: rahim, otDate: workDays[5], hours: 2.0, reason: 'রিলিজ ডেপ্লয়মেন্ট', status: 'APPROVED', decidedBy: 'manager').save(failOnError: true)
+            new OvertimeRequest(employee: rahim, otDate: workDays[9], hours: 1.5, reason: 'বাগ ফিক্স', status: 'APPROVED', decidedBy: 'manager').save(failOnError: true)
+            new OvertimeRequest(employee: rahim, otDate: workDays[20], hours: 4.0, reason: 'অপেক্ষমাণ নমুনা', status: 'PENDING').save(failOnError: true)
+        }
+        if (karim) new OvertimeRequest(employee: karim, otDate: workDays[7], hours: 3.0, reason: 'ক্লায়েন্ট ডেমো', status: 'APPROVED', decidedBy: 'admin').save(failOnError: true)
     }
 
     private void seedSecurity() {
