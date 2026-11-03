@@ -52,7 +52,7 @@
                     <g:if test="${canSeeDocs}">
                         <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-documents" type="button" role="tab">নথি <span class="badge text-bg-light border">${documents.size()}</span></button></li>
                     </g:if>
-                    <li class="nav-item"><span class="nav-link disabled" title="Day 4-এ আসছে">ছুটি</span></li>
+                    <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-leave" type="button" role="tab">ছুটি</button></li>
                     <li class="nav-item"><span class="nav-link disabled" title="Day 3-এ আসছে">উপস্থিতি</span></li>
                     <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-history" type="button" role="tab">ইতিহাস <span class="badge text-bg-light border">${history.size()}</span></button></li>
                 </ul>
@@ -175,6 +175,38 @@
                         <g:else><div class="text-muted">কোনো নথি আপলোড করা হয়নি।</div></g:else>
                     </div>
                 </g:if>
+
+                <%-- ========================= ছুটি ========================= --%>
+                <div class="tab-pane fade" id="tab-leave" role="tabpanel">
+                    <div class="row g-2 mb-3">
+                        <g:each in="${leaveBalances}" var="b">
+                            <div class="col-6 col-md-4">
+                                <div class="border rounded p-2">
+                                    <div class="small text-muted">${b.type.name}</div>
+                                    <div class="fw-semibold">
+                                        <g:if test="${b.limited}"><g:formatNumber number="${b.remaining}" maxFractionDigits="1"/> দিন বাকি</g:if>
+                                        <g:else>ব্যবহৃত ${b.used} দিন</g:else>
+                                    </div>
+                                </div>
+                            </div>
+                        </g:each>
+                    </div>
+                    <table class="table table-sm align-middle mb-0">
+                        <thead class="table-light"><tr><th>ধরন</th><th>সময়কাল</th><th>দিন</th><th>অবস্থা</th><th></th></tr></thead>
+                        <tbody>
+                        <g:each in="${leaveRequests}" var="r">
+                            <tr>
+                                <td>${r.leaveType.name}</td>
+                                <td><hrms:date value="${r.fromDate}"/> – <hrms:date value="${r.toDate}"/></td>
+                                <td>${r.days}</td>
+                                <td><hrms:leaveStatus status="${r.status}"/></td>
+                                <td><g:link controller="leave" action="show" id="${r.id}" class="btn btn-sm btn-outline-secondary"><i class="bi bi-eye"></i></g:link></td>
+                            </tr>
+                        </g:each>
+                        <g:if test="${!leaveRequests}"><tr><td colspan="5" class="text-muted text-center py-3">কোনো ছুটির আবেদন নেই।</td></tr></g:if>
+                        </tbody>
+                    </table>
+                </div>
 
                 <%-- ========================= ইতিহাস ========================= --%>
                 <div class="tab-pane fade" id="tab-history" role="tabpanel">

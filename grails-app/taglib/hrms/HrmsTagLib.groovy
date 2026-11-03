@@ -50,6 +50,20 @@ class HrmsTagLib {
         out << "<span class=\"badge text-bg-${css}\">${(status ?: '').replace('_', ' ').encodeAsHTML()}</span>"
     }
 
+    /** ছুটির আবেদনের স্ট্যাটাস ব্যাজ */
+    def leaveStatus = { attrs ->
+        String status = attrs.status as String
+        Map m = [PENDING: ['warning text-dark', 'অপেক্ষমাণ'], APPROVED: ['success', 'অনুমোদিত'],
+                 REJECTED: ['danger', 'বাতিল (প্রত্যাখ্যাত)'], CANCELLED: ['secondary', 'প্রত্যাহার']]
+        List v = m[status] ?: ['light text-dark', status ?: '']
+        out << "<span class=\"badge text-bg-${v[0]}\">${v[1]}</span>"
+    }
+
+    /** অনুমোদনের ধাপের নাম */
+    def stageName = { attrs ->
+        out << ([MANAGER: 'ম্যানেজার', HR: 'HR'][attrs.stage as String] ?: (attrs.stage ?: '')).toString().encodeAsHTML()
+    }
+
     def initials = { attrs ->
         String name = (attrs.name ?: '') as String
         def parts = name.trim().split(/\s+/).findAll { it }

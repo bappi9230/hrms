@@ -22,7 +22,7 @@ class AccessService {
         currentUser()?.employee
     }
 
-    private static boolean has(String roles) {
+    static boolean has(String roles) {
         SpringSecurityUtils.ifAnyGranted(roles)
     }
 

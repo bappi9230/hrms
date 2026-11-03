@@ -23,7 +23,7 @@
             <g:each in="${items}" var="item">
                 <tr>
                     <g:each in="${cfg.fields}" var="f">
-                        <td>${item[f.name] != null ? item[f.name] : '—'}</td>
+                        <td><g:if test="${item[f.name] instanceof Boolean}">${item[f.name] ? 'হ্যাঁ' : 'না'}</g:if><g:else>${item[f.name] != null ? item[f.name] : '—'}</g:else></td>
                     </g:each>
                     <td class="text-end">
                         <g:link controller="master" action="edit" id="${item.id}" params="[type: type]" class="btn btn-sm btn-outline-secondary"><i class="bi bi-pencil"></i></g:link>

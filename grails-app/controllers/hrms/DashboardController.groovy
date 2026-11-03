@@ -8,8 +8,10 @@ import java.time.LocalDate
 class DashboardController {
 
     def accessService
+    def leaveService
 
     def index() {
+        leaveService.syncStatus()   // আজকের ON_LEAVE অবস্থা হালনাগাদ
         List byDepartment = Employee.createCriteria().list {
             projections {
                 groupProperty('department')
@@ -23,6 +25,7 @@ class DashboardController {
         if (accessService.isApprover()) {
             Set<Long> ids = accessService.approvableIds()
             Long myId = accessService.currentEmployee()?.id
+            pending += leaveService.pendingForMe().size()
             [OvertimeRequest, RegularizationRequest].each { Class c ->
                 pending += c.createCriteria().list {
                     eq('status', 'PENDING')

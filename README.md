@@ -35,3 +35,22 @@ Change passwords from the top-right user menu -> "পাসওয়ার্ড
 6. `accountant` and `employee` (own profile) see the salary tab; `manager` does not.
 7. Change password (wrong current / short / mismatch -> error; valid -> toast, re-login works).
 8. Logout -> back at login.
+
+## Day 4 - Leave Management
+
+Menu: ছুটি (all roles), Settings -> ছুটির নীতি (Admin/HR). **Delete `devDb.mv.db` once** after pulling Day 4 (new tables + seed).
+
+- Leave types/policy (`/master/leavetype`): annual quota (0 = unlimited), YEARLY or MONTHLY accrual, paid flag, carry forward + cap, approval levels (1 = manager, 2 = manager + HR), gender restriction.
+- Balance per employee per year is created lazily; carry forward is taken from last year's remaining (up to the cap).
+- Approval chain: manager exists -> `MANAGER` (+ `HR` if levels = 2); no manager -> `HR`. Nobody can approve their own request; Admin/HR can act on manager step.
+- Final approval: balance used, attendance rows marked `ON_LEAVE` (up to today), employee status `ACTIVE <-> ON_LEAVE` synced (on approve/cancel, on dashboard open, hourly timer).
+- Weekend = Friday only (`LeaveService.WEEKEND`). Holiday calendar is not wired in yet.
+
+### Day 4 test checklist
+1. `employee` (rahim): Leave -> balance cards (Annual shows 5 carried from last year); apply Casual leave -> goes to manager. Overlap / over-balance / Friday-only range -> red error.
+2. `manager` (karim): Leave -> Approval -> approve rahim's pending request -> status APPROVED, balance used +2.
+3. Apply Annual leave (2 levels) as rahim -> manager approves -> still pending (HR step) -> `hr` approves -> APPROVED.
+4. Reject without remark -> error; with remark -> REJECTED, pending released.
+5. Apply leave starting today, approve it -> dashboard "ছুটিতে" count +1, employee status ON_LEAVE, today's attendance shows ON_LEAVE. Cancel (HR) -> back to ACTIVE.
+6. Team calendar: manager sees team with type codes; employee sees department peers as dots.
+7. `hr`/`admin`: Leave -> সব আবেদন, সবার ব্যালেন্স; Settings -> ছুটির নীতি add/edit type. Nasrin (FEMALE) sees Maternity; Rahim does not.

@@ -7,6 +7,8 @@ class BootStrap {
 
     UserService userService
     EmploymentService employmentService
+    LeaveService leaveService
+    private Timer leaveTimer
 
     static final String DEMO_PASSWORD = 'Hrms@2026'
 
@@ -16,10 +18,25 @@ class BootStrap {
             seedStructure()
             seedSecurity()
             seedAttendance()
+            seedLeave()
+            leaveService.syncStatus()
         }
+
+        // Day 4: প্রতি ঘণ্টায় ON_LEAVE স্ট্যাটাস সিঙ্ক (রাত পেরোলে নতুন দিনের জন্য)
+        leaveTimer = new Timer('leave-status-sync', true)
+        leaveTimer.schedule(new TimerTask() {
+            void run() {
+                try {
+                    Employee.withNewSession { Employee.withTransaction { leaveService.syncStatus() } }
+                } catch (Throwable t) {
+                    org.slf4j.LoggerFactory.getLogger('hrms.BootStrap').warn('Leave status sync failed: ' + t.message)
+                }
+            }
+        }, 3600000L, 3600000L)
     }
 
     def destroy = {
+        leaveTimer?.cancel()
     }
 
     private void seedOrganization() {
@@ -137,6 +154,35 @@ class BootStrap {
                     made++
                 }
             }
+        }
+    }
+
+    /** Day 4: ছুটির ধরন ও নমুনা আবেদন (নিয়মগুলো টেস্ট করার সুবিধার জন্য) */
+    private void seedLeave() {
+        if (LeaveType.count() == 0) {
+            // code, name, annualDays, accrual, paid, carryForward, maxCarry, approvalLevels, gender
+            [['AL', 'বার্ষিক ছুটি',      14, 'MONTHLY', true,  true,  5, 2, null],
+             ['CL', 'নৈমিত্তিক ছুটি',    10, 'YEARLY',  true,  false, 0, 1, null],
+             ['SL', 'অসুস্থতার ছুটি',     14, 'YEARLY',  true,  false, 0, 1, null],
+             ['ML', 'মাতৃত্বকালীন ছুটি', 112, 'YEARLY',  true,  false, 0, 2, 'FEMALE'],
+             ['LWP', 'বিনা বেতনের ছুটি',   0, 'YEARLY',  false, false, 0, 2, null]].each { r ->
+                new LeaveType(code: r[0], name: r[1], annualDays: r[2], accrual: r[3], paid: r[4],
+                        carryForward: r[5], maxCarryForward: r[6], approvalLevels: r[7], gender: r[8]).save(failOnError: true)
+            }
+        }
+
+        Employee rahim = Employee.findByEmail('rahim@example.com')
+        LeaveType al = LeaveType.findByCode('AL')
+        if (rahim && al && LeaveBalance.count() == 0) {
+            // গত বছরে ১৪ এর মধ্যে ৬ দিন ব্যবহৃত -> বাকি ৮, carry forward সীমা ৫ -> এ বছর ৫ দিন আসবে
+            int lastYear = LocalDate.now().year - 1
+            new LeaveBalance(employee: rahim, leaveType: al, balanceYear: lastYear, used: 6).save(failOnError: true)
+            leaveService.ensureBalances(rahim, LocalDate.now().year)
+
+            // নমুনা আবেদন: একটি অপেক্ষমাণ (ধাপ ১/২: ম্যানেজার)
+            LocalDate start = LocalDate.now().plusDays(10)
+            while (leaveService.isOffDay(start)) start = start.plusDays(1)
+            leaveService.apply(rahim, LeaveType.findByCode('CL'), start, start.plusDays(1), 'পারিবারিক অনুষ্ঠান')
         }
     }
 

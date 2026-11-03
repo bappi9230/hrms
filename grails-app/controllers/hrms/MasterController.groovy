@@ -31,7 +31,19 @@ class MasterController {
                 [name: 'endTime', label: 'শেষ', required: true, time: true],
                 [name: 'graceMinutes', label: 'গ্রেস টাইম (মিনিট)', required: true, number: true],
                 [name: 'earlyOutMinutes', label: 'আর্লি-আউট সীমা (মিনিট)', required: true, number: true]],
-                usedBy: { Shift s -> Attendance.countByShift(s) }, usedLabel: 'উপস্থিতির রেকর্ডে']
+                usedBy: { Shift s -> Attendance.countByShift(s) }, usedLabel: 'উপস্থিতির রেকর্ডে'],
+        leavetype : [clazz: LeaveType, title: 'ছুটির নীতি', prop: 'leaveType', order: 'id', fields: [
+                [name: 'code', label: 'কোড (যেমন AL)', required: true],
+                [name: 'name', label: 'ছুটির নাম', required: true],
+                [name: 'annualDays', label: 'বার্ষিক কোটা (দিন, 0 = সীমাহীন)', required: true, number: true],
+                [name: 'accrual', label: 'Accrual', required: true, select: LeaveType.ACCRUALS],
+                [name: 'paid', label: 'বেতনসহ ছুটি', checkbox: true],
+                [name: 'carryForward', label: 'পরের বছরে carry forward', checkbox: true],
+                [name: 'maxCarryForward', label: 'সর্বোচ্চ carry forward (দিন)', number: true],
+                [name: 'approvalLevels', label: 'অনুমোদনের ধাপ (1 = ম্যানেজার, 2 = ম্যানেজার + HR)', required: true, select: [1, 2]],
+                [name: 'gender', label: 'শুধু কার জন্য', select: LeaveType.GENDERS, blankLabel: 'সবার জন্য'],
+                [name: 'active', label: 'সক্রিয়', checkbox: true]],
+                usedBy: { LeaveType t -> LeaveRequest.countByLeaveType(t) + LeaveBalance.countByLeaveType(t) }, usedLabel: 'ছুটির আবেদন/ব্যালেন্সে']
     ]
 
     def index() {
@@ -50,7 +62,8 @@ class MasterController {
         Map cfg = typeConfig()
         if (!cfg) return
         def obj = cfg.clazz.newInstance()
-        bindData(obj, params, [include: cfg.fields*.name])
+        bindData(obj, params, [include: cfg.fields.findAll { !it.checkbox }*.name])
+        cfg.fields.findAll { it.checkbox }.each { f -> obj[f.name as String] = params[f.name as String] != null }
         if (!obj.save(flush: true)) {
             render(view: 'form', model: [type: params.type, cfg: cfg, instance: obj])
             return
@@ -72,7 +85,8 @@ class MasterController {
         if (!cfg) return
         def obj = id ? cfg.clazz.get(id) : null
         if (!obj) { notFound(cfg); return }
-        bindData(obj, params, [include: cfg.fields*.name])
+        bindData(obj, params, [include: cfg.fields.findAll { !it.checkbox }*.name])
+        cfg.fields.findAll { it.checkbox }.each { f -> obj[f.name as String] = params[f.name as String] != null }
         if (!obj.save(flush: true)) {
             render(view: 'form', model: [type: params.type, cfg: cfg, instance: obj])
             return

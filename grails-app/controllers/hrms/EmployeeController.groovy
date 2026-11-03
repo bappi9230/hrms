@@ -19,6 +19,7 @@ class EmployeeController {
 
     def accessService
     def attendanceService
+    def leaveService
     def employmentService
 
     // ======================================================================= list + search/filter
@@ -103,6 +104,8 @@ class EmployeeController {
             canSeeDocs  : canSeeDocs,
             history     : EmploymentHistory.findAllByEmployee(employee, [sort: 'effectiveDate', order: 'desc']),
             attendance  : attendanceService.monthSummary(employee, YearMonth.now()),
+            leaveBalances: leaveService.ensureBalances(employee, LocalDate.now().year).collect { leaveService.view(it) },
+            leaveRequests: LeaveRequest.findAllByEmployee(employee, [sort: 'appliedAt', order: 'desc', max: 10]),
             docTypes    : EmployeeDocument.TYPES,
             eventTypes  : ['PROMOTION', 'TRANSFER', 'OTHER']
         ]

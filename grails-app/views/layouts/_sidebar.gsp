@@ -16,7 +16,7 @@
     <g:render template="/layouts/menuItem" model="[label: 'অর্গ চার্ট', icon: 'bi-diagram-2', controller: 'orgChart']"/>
 
     <g:render template="/layouts/menuItem" model="[label: 'উপস্থিতি', icon: 'bi-calendar-check', controller: 'attendance']"/>
-    <g:render template="/layouts/menuItem" model="[label: 'ছুটি', icon: 'bi-airplane', controller: 'leave', soon: 4]"/>
+    <g:render template="/layouts/menuItem" model="[label: 'ছুটি', icon: 'bi-airplane', controller: 'leave']"/>
 
     <sec:ifAnyGranted roles="ROLE_ADMIN,ROLE_ACCOUNTANT">
         <g:render template="/layouts/menuItem" model="[label: 'বেতন', icon: 'bi-cash-coin', controller: 'payroll', soon: 5]"/>
@@ -57,6 +57,7 @@
         <g:render template="/layouts/menuItem" model="[label: 'শাখা', icon: 'bi-building', controller: 'master', linkParams: [type: 'branch']]"/>
         <g:render template="/layouts/menuItem" model="[label: 'গ্রেড', icon: 'bi-layers', controller: 'master', linkParams: [type: 'grade']]"/>
         <g:render template="/layouts/menuItem" model="[label: 'কস্ট সেন্টার', icon: 'bi-piggy-bank', controller: 'master', linkParams: [type: 'costcenter']]"/>
+        <g:render template="/layouts/menuItem" model="[label: 'ছুটির নীতি', icon: 'bi-airplane-engines', controller: 'master', linkParams: [type: 'leavetype']]"/>
         <g:render template="/layouts/menuItem" model="[label: 'শিফট', icon: 'bi-clock', controller: 'master', linkParams: [type: 'shift']]"/>
     </sec:ifAnyGranted>
 

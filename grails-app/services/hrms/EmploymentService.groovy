@@ -74,7 +74,8 @@ class EmploymentService {
 
     /** কর্মী ও তার সব সংশ্লিষ্ট তথ্য একসাথে মোছে (এক ট্রানজ্যাকশনে) */
     void deleteEmployee(Employee employee) {
-        [EmployeeDocument, EmploymentHistory, Attendance, OvertimeRequest, RegularizationRequest, Roster].each { Class c ->
+        LeaveApproval.executeUpdate('delete from LeaveApproval a where a.leaveRequest in (select r from LeaveRequest r where r.employee = :e)', [e: employee])
+        [LeaveRequest, LeaveBalance, EmployeeDocument, EmploymentHistory, Attendance, OvertimeRequest, RegularizationRequest, Roster].each { Class c ->
             c.executeUpdate("delete from ${c.simpleName} x where x.employee = :e".toString(), [e: employee])
         }
         employee.delete(flush: true)
