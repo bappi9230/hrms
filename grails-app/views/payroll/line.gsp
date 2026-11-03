@@ -12,7 +12,10 @@
             <hrms:monthName value="${run.payMonth}"/> ${run.payYear}</span>
         <hrms:payrollStatus status="${run.status}"/>
     </div>
-    <g:link action="show" id="${run.id}" class="btn btn-outline-secondary"><i class="bi bi-arrow-left"></i> বেতন শিট</g:link>
+    <div class="d-flex gap-2">
+        <g:link action="payslip" id="${line.id}" class="btn btn-outline-primary"><i class="bi bi-file-earmark-text"></i> পে-স্লিপ</g:link>
+        <g:link action="show" id="${run.id}" class="btn btn-outline-secondary"><i class="bi bi-arrow-left"></i> বেতন শিট</g:link>
+    </div>
 </div>
 
 <g:if test="${line.remarks}">

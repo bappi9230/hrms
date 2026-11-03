@@ -129,6 +129,15 @@ class PayrollController {
         w.flush()
     }
 
+    /** Day 6 (ডেমো): পে-স্লিপ - প্রিন্ট/PDF সেভের উপযোগী পাতা */
+    def payslip(Long id) {
+        PayrollLine line = id ? PayrollLine.get(id) : null
+        if (!line) { notFound(); return }
+        [line: line, run: line.payrollRun,
+         earnings: PayrollLineItem.findAllByLineAndHeadType(line, 'EARNING', [sort: 'id']),
+         deductions: PayrollLineItem.findAllByLineAndHeadType(line, 'DEDUCTION', [sort: 'id'])]
+    }
+
     private void notFound() {
         flash.error = 'পে-রোল পাওয়া যায়নি।'
         redirect(action: 'index')
