@@ -80,6 +80,13 @@ class EmploymentService {
         AssetAllocation.findAllByEmployeeAndStatus(employee, 'ISSUED').each { AssetAllocation al ->
             if (al.asset != null && al.asset.status == 'ASSIGNED') { al.asset.status = 'AVAILABLE'; al.asset.save(failOnError: true) }
         }
+        // Day 9: চাকরি-ছাড়া (ক্লিয়ারেন্স, নিষ্পত্তি), অভিযোগ, শৃঙ্খলা, নোটিফিকেশন
+        ClearanceItem.executeUpdate('delete from ClearanceItem c where c.separation in (select s from Separation s where s.employee = :e)', [e: employee])
+        FinalSettlement.executeUpdate('delete from FinalSettlement f where f.employee = :e', [e: employee])
+        Separation.executeUpdate('delete from Separation s where s.employee = :e', [e: employee])
+        GrievanceNote.executeUpdate('delete from GrievanceNote n where n.grievance in (select g from Grievance g where g.employee = :e)', [e: employee])
+        Grievance.executeUpdate('delete from Grievance g where g.employee = :e', [e: employee])
+        DisciplinaryCase.executeUpdate('delete from DisciplinaryCase d where d.employee = :e', [e: employee])
         [ExpenseClaim, TravelRequest, Goal, Appraisal, TrainingEnrollment, BenefitEnrollment].each { Class c ->
             c.executeUpdate("delete from ${c.simpleName} x where x.employee = :e".toString(), [e: employee])
         }

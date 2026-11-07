@@ -25,6 +25,8 @@
         </div>
 
         <sec:ifLoggedIn>
+          <div class="d-flex align-items-center">
+            <hrms:bell/>
             <div class="dropdown">
                 <a class="btn btn-sm btn-outline-light dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                     <i class="bi bi-person-circle me-1"></i> <sec:username/>
@@ -36,6 +38,7 @@
                     <li><a class="dropdown-item text-danger" href="${createLink(uri: '/logoff')}"><i class="bi bi-box-arrow-right me-2"></i>লগআউট</a></li>
                 </ul>
             </div>
+          </div>
         </sec:ifLoggedIn>
     </div>
 </header>

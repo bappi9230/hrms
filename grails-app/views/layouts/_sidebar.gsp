@@ -1,7 +1,13 @@
 <sec:ifLoggedIn>
 <ul class="nav flex-column pb-3">
 
-    <g:render template="/layouts/menuItem" model="[label: 'ড্যাশবোর্ড', icon: 'bi-speedometer2', controller: 'dashboard']"/>
+    <g:render template="/layouts/menuItem" model="[label: 'আমার পোর্টাল', icon: 'bi-house-heart', controller: 'portal']"/>
+    <sec:ifAnyGranted roles="ROLE_ADMIN,ROLE_HR,ROLE_ACCOUNTANT">
+        <g:render template="/layouts/menuItem" model="[label: 'ড্যাশবোর্ড', icon: 'bi-speedometer2', controller: 'dashboard']"/>
+    </sec:ifAnyGranted>
+    <sec:ifAnyGranted roles="ROLE_ADMIN,ROLE_HR,ROLE_MANAGER,ROLE_ACCOUNTANT">
+        <g:render template="/layouts/menuItem" model="[label: 'অনুমোদন ইনবক্স', icon: 'bi-inbox', controller: 'inbox']"/>
+    </sec:ifAnyGranted>
 
     <sec:ifAnyGranted roles="ROLE_EMPLOYEE">
         <g:render template="/layouts/menuItem" model="[label: 'আমার প্রোফাইল', icon: 'bi-person-badge', controller: 'employee', action: 'myProfile']"/>
@@ -51,8 +57,13 @@
     <g:render template="/layouts/menuItem" model="[label: 'প্রশিক্ষণ', icon: 'bi-mortarboard', controller: 'training']"/>
     <g:render template="/layouts/menuItem" model="[label: 'খরচ ও সম্পদ', icon: 'bi-wallet2', controller: 'expense']"/>
 
+    <%-- Day 9: চাকরি ছাড়া, কর্মী সম্পর্ক, ঘোষণা (সবার জন্য; ভেতরে রোল অনুযায়ী সীমা) --%>
+    <g:render template="/layouts/menuItem" model="[label: 'চাকরি ছাড়া', icon: 'bi-box-arrow-right', controller: 'offboarding']"/>
+    <g:render template="/layouts/menuItem" model="[label: 'শৃঙ্খলা', icon: 'bi-shield-exclamation', controller: 'discipline']"/>
+    <g:render template="/layouts/menuItem" model="[label: 'অভিযোগ', icon: 'bi-megaphone', controller: 'grievance']"/>
+    <g:render template="/layouts/menuItem" model="[label: 'ঘোষণা', icon: 'bi-broadcast', controller: 'announcement']"/>
     <sec:ifAnyGranted roles="ROLE_ADMIN,ROLE_HR">
-        <g:render template="/layouts/menuItem" model="[label: 'চাকরি ছাড়া', icon: 'bi-box-arrow-right', controller: 'offboarding', soon: 9]"/>
+        <g:render template="/layouts/menuItem" model="[label: 'অডিট ট্রেইল', icon: 'bi-journal-text', controller: 'audit']"/>
     </sec:ifAnyGranted>
 
     <sec:ifAnyGranted roles="ROLE_ADMIN,ROLE_HR,ROLE_ACCOUNTANT">

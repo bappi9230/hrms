@@ -11,8 +11,15 @@ class DashboardController {
     def leaveService
     def expenseService
     def performanceService
+    def offboardingService
+    def settlementService
 
     def index() {
+        // Day 9: HR/Admin/হিসাব বিভাগ ছাড়া সবার হোম = আমার পোর্টাল
+        if (!AccessService.has('ROLE_ADMIN,ROLE_HR,ROLE_ACCOUNTANT')) {
+            redirect(controller: 'portal', action: 'index')
+            return
+        }
         leaveService.syncStatus()   // আজকের ON_LEAVE অবস্থা হালনাগাদ
         List byDepartment = Employee.createCriteria().list {
             projections {
@@ -41,6 +48,9 @@ class DashboardController {
             pending += expenseService.pendingCountForMe() + expenseService.payableClaims().size()
         }
         if (accessService.isApprover()) pending += performanceService.pendingReviewCount()
+        // Day 9: চাকরি-ছাড়ার সিদ্ধান্ত/নিষ্পত্তি, শৃঙ্খলা জবাব, নতুন অভিযোগ
+        pending += offboardingService.pendingForMe().size() + settlementService.pendingForAccounts().size()
+        if (accessService.isHrAdmin()) pending += DisciplinaryCase.countByStatus('RESPONDED') + Grievance.countByStatus('OPEN')
 
         // documents that expired or expire within 30 days (HR / Admin only)
         List expiring = []
