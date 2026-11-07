@@ -79,3 +79,25 @@ Creating a login account for the new employee is still manual. "Not confirmed" o
 7. Convert again / reject candidate with live offer (offer withdrawn) / decline offer (candidate REJECTED) behave as described.
 8. Onboarding: tick tasks, add a custom task, issue/return an asset (same serial twice -> error). Nasrin: probation OVERDUE -> extend (reason needed) / confirm -> type becomes FULL_TIME + history line.
 9. Delete requisition-linked data checks: an interviewer or converted employee cannot be deleted from Employee screen.
+
+## Day 8 - Performance, Training, Expense/Travel, Assets, Benefits
+
+Menu: পারফরম্যান্স, প্রশিক্ষণ, খরচ ও সম্পদ (খরচের দাবি / ভ্রমণ / সম্পদ রেজিস্টার / সুবিধা) - সব রোলের জন্য; Settings -> সুবিধার প্ল্যান (Admin/HR).
+**Delete `devDb.mv.db` once** after pulling Day 8 (new tables, `AssetAllocation.asset` column + seed). Dashboard "অপেক্ষমাণ অনুমোদন" now also counts expense, travel and appraisal reviews.
+
+- Goals/KPI: self / manager / HR can set; total active weight per year <= 100; reaching target auto-COMPLETES.
+- Appraisal cycle: DRAFT -> OPEN (creates an appraisal for every active employee) -> CLOSED. Self rating (1-5) -> manager rating -> COMPLETED; manager may review early only after self is submitted (or after due date); rating 1-2 or 5 needs a comment; nobody reviews themself.
+- Training: catalogue (cards), self-enroll or HR enroll, seats, HR records PASS/FAIL -> certificate number + printable certificate.
+- Expense: PENDING_MANAGER -> PENDING_ACCOUNTS -> APPROVED -> PAID (no manager = skips step 1). Receipt required above 500 TK (pdf/jpg/png, 2 MB); max 90 days old; duplicate check; nobody approves/pays their own claim.
+- Travel: manager/HR approve; cannot clash with another trip or approved leave; expense can be linked to an approved trip.
+- Assets: register (AVAILABLE/ASSIGNED/MAINTENANCE/RETIRED), issue/receive, same serial cannot be with two people. Benefits: plan has min service months; one ACTIVE enrollment per plan per employee.
+
+### Day 8 test checklist (seed data included)
+1. `employee` (rahim): Performance -> 3 goals (weights 40/30/30); add a goal with weight 10 -> error (total > 100). Update progress to target -> COMPLETED. Appraisals: his is already with the manager.
+2. `manager` (karim): Performance -> team goals; Appraisals -> rahim -> rate 5 without comment (error) / rate 4 -> COMPLETED with goal score. Nasrin still waiting for self review -> cannot review before due date.
+3. `hr`: Cycles -> create next-year-overlap cycle (error); open the DRAFT cycle -> appraisals created; close a cycle.
+4. Training: `employee` enrolls in the 2-seat workshop (1 seat left) -> second person gets "আসন খালি নেই". `hr`: record PASS for Rahim in the running course -> certificate; Rahim's FAILED row can re-enroll only if course still open.
+5. Expense: `employee` new claim 600 TK without receipt -> error; 450 TK ok. `manager` approves rahim's claim -> goes to accounts. `accountant` (sumaiya) approves/pays rahim's and karim's claims (payment ref required); sumaiya cannot pay her own.
+6. Travel: rahim requests a trip overlapping Sylhet one -> error; `manager` approves it; reject without note -> error.
+7. Assets (`hr`): issue AST-0002 to someone -> ASSIGNED; issue same serial again -> error; receive with "needs maintenance"; RETIRE an assigned asset -> error. `employee`: খরচ ও সম্পদ -> "আমার সম্পদ".
+8. Benefits (`hr`): enroll Nasrin (joined < 3 months?) in health plan -> min-service error if too new; enroll twice -> error; end a benefit. Settings -> সুবিধার প্ল্যান add/edit.
