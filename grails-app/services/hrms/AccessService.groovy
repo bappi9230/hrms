@@ -49,6 +49,18 @@ class AccessService {
         subordinateIds(me)
     }
 
+    /**
+     * Day 8: এই কর্মীর ওপর "ম্যানেজার-সিদ্ধান্ত" (অনুমোদন, মূল্যায়ন, লক্ষ্য দেওয়া) দেওয়া যাবে কি?
+     * নিজের ক্ষেত্রে কখনোই নয়; HR/Admin অন্য সবার ক্ষেত্রে; ম্যানেজার শুধু নিজের (সরাসরি/পরোক্ষ) অধীনের।
+     */
+    boolean canManage(Employee employee) {
+        if (employee == null) return false
+        Long me = currentEmployee()?.id
+        if (me != null && me == employee.id) return false
+        if (isHrAdmin()) return true
+        me != null && subordinateIds(me).contains(employee.id)
+    }
+
     boolean canView(Employee employee) {
         if (employee == null) return false
         Set<Long> ids = visibleEmployeeIds()

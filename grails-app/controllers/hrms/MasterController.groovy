@@ -59,7 +59,16 @@ class MasterController {
                 [name: 'dueAfterDays', label: 'যোগদানের কত দিনের মধ্যে', required: true, number: true],
                 [name: 'sortOrder', label: 'ক্রম (ছোট সংখ্যা আগে)', required: true, number: true],
                 [name: 'active', label: 'নতুন কর্মীর চেকলিস্টে যোগ হবে', checkbox: true]],
-                usedBy: { OnboardingTemplate t -> 0 }, usedLabel: '']
+                usedBy: { OnboardingTemplate t -> 0 }, usedLabel: ''],
+        benefitplan: [clazz: BenefitPlan, title: 'সুবিধার প্ল্যান', prop: 'benefitPlan', order: 'name', fields: [
+                [name: 'name', label: 'প্ল্যানের নাম', required: true],
+                [name: 'benefitType', label: 'ধরন', required: true, select: BenefitPlan.TYPES],
+                [name: 'provider', label: 'সরবরাহকারী (যেমন বীমা কোম্পানি)'],
+                [name: 'description', label: 'বিবরণ'],
+                [name: 'monthlyValue', label: 'কোম্পানির মাসিক খরচ (৳)', number: true],
+                [name: 'minServiceMonths', label: 'যোগদানের কত মাস পর থেকে', required: true, number: true],
+                [name: 'active', label: 'সক্রিয়', checkbox: true]],
+                usedBy: { BenefitPlan p -> BenefitEnrollment.countByPlan(p) }, usedLabel: 'কর্মীর সুবিধার তালিকায়']
     ]
 
     def index() {

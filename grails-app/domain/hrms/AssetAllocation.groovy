@@ -9,6 +9,7 @@ class AssetAllocation {
     static final List<String> STATUSES = ['ISSUED', 'RETURNED']
 
     Employee employee
+    Asset asset                // Day 8: রেজিস্টারের সম্পদ (অনবোর্ডিং এ হাতে লেখা হলে null)
     String assetType = 'LAPTOP'
     String assetName
     String serialNo
@@ -20,6 +21,7 @@ class AssetAllocation {
 
     static constraints = {
         employee nullable: false
+        asset nullable: true
         assetType inList: TYPES
         assetName blank: false, maxSize: 120
         serialNo nullable: true, maxSize: 80

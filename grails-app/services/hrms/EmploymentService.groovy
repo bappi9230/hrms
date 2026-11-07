@@ -75,6 +75,14 @@ class EmploymentService {
     /** কর্মী ও তার সব সংশ্লিষ্ট তথ্য একসাথে মোছে (এক ট্রানজ্যাকশনে) */
     void deleteEmployee(Employee employee) {
         LeaveApproval.executeUpdate('delete from LeaveApproval a where a.leaveRequest in (select r from LeaveRequest r where r.employee = :e)', [e: employee])
+        // Day 8: খরচের দাবি আগে (ভ্রমণের ওপর নির্ভরশীল), তারপর ভ্রমণ; মূল্যায়নে reviewer থাকলে ফাঁকা করা
+        Appraisal.executeUpdate('update Appraisal a set a.reviewer = null where a.reviewer = :e', [e: employee])
+        AssetAllocation.findAllByEmployeeAndStatus(employee, 'ISSUED').each { AssetAllocation al ->
+            if (al.asset != null && al.asset.status == 'ASSIGNED') { al.asset.status = 'AVAILABLE'; al.asset.save(failOnError: true) }
+        }
+        [ExpenseClaim, TravelRequest, Goal, Appraisal, TrainingEnrollment, BenefitEnrollment].each { Class c ->
+            c.executeUpdate("delete from ${c.simpleName} x where x.employee = :e".toString(), [e: employee])
+        }
         [LeaveRequest, LeaveBalance, EmployeeDocument, EmploymentHistory, Attendance, OvertimeRequest, RegularizationRequest, Roster,
          SalaryStructure, EmployeeSalaryHead, SalaryRevision, PaymentInfo,
          OnboardingTask, AssetAllocation, ProbationRecord].each { Class c ->

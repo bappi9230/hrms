@@ -46,17 +46,10 @@
         <g:render template="/layouts/menuItem" model="[label: 'আমার ইন্টারভিউ', icon: 'bi-chat-square-text', controller: 'candidate', action: 'myInterviews']"/>
     </sec:ifAnyGranted>
 
-    <sec:ifAnyGranted roles="ROLE_ADMIN,ROLE_HR,ROLE_MANAGER">
-        <g:render template="/layouts/menuItem" model="[label: 'পারফরম্যান্স', icon: 'bi-graph-up-arrow', controller: 'performance', soon: 8]"/>
-    </sec:ifAnyGranted>
-
-    <sec:ifAnyGranted roles="ROLE_ADMIN,ROLE_HR">
-        <g:render template="/layouts/menuItem" model="[label: 'প্রশিক্ষণ', icon: 'bi-mortarboard', controller: 'training', soon: 8]"/>
-    </sec:ifAnyGranted>
-
-    <sec:ifAnyGranted roles="ROLE_ADMIN,ROLE_ACCOUNTANT">
-        <g:render template="/layouts/menuItem" model="[label: 'খরচ ও সম্পদ', icon: 'bi-wallet2', controller: 'expense', soon: 8]"/>
-    </sec:ifAnyGranted>
+    <%-- Day 8: সবাই নিজের লক্ষ্য/প্রশিক্ষণ/খরচ দেখে; ম্যানেজার ও HR আরও বেশি --%>
+    <g:render template="/layouts/menuItem" model="[label: 'পারফরম্যান্স', icon: 'bi-graph-up-arrow', controller: 'performance']"/>
+    <g:render template="/layouts/menuItem" model="[label: 'প্রশিক্ষণ', icon: 'bi-mortarboard', controller: 'training']"/>
+    <g:render template="/layouts/menuItem" model="[label: 'খরচ ও সম্পদ', icon: 'bi-wallet2', controller: 'expense']"/>
 
     <sec:ifAnyGranted roles="ROLE_ADMIN,ROLE_HR">
         <g:render template="/layouts/menuItem" model="[label: 'চাকরি ছাড়া', icon: 'bi-box-arrow-right', controller: 'offboarding', soon: 9]"/>
@@ -77,6 +70,7 @@
         <g:render template="/layouts/menuItem" model="[label: 'ভাতা/কর্তনের খাত', icon: 'bi-sliders', controller: 'master', linkParams: [type: 'salaryhead']]"/>
         <g:render template="/layouts/menuItem" model="[label: 'শিফট', icon: 'bi-clock', controller: 'master', linkParams: [type: 'shift']]"/>
         <g:render template="/layouts/menuItem" model="[label: 'অনবোর্ডিং কাজ', icon: 'bi-list-check', controller: 'master', linkParams: [type: 'onboardingtemplate']]"/>
+        <g:render template="/layouts/menuItem" model="[label: 'সুবিধার প্ল্যান', icon: 'bi-heart-pulse', controller: 'master', linkParams: [type: 'benefitplan']]"/>
     </sec:ifAnyGranted>
 
 </ul>

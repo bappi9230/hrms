@@ -9,6 +9,8 @@ class DashboardController {
 
     def accessService
     def leaveService
+    def expenseService
+    def performanceService
 
     def index() {
         leaveService.syncStatus()   // আজকের ON_LEAVE অবস্থা হালনাগাদ
@@ -33,6 +35,12 @@ class DashboardController {
                 }.count { it.employee.id != myId }
             }
         }
+
+        // Day 8: খরচের দাবি, ভ্রমণ ও মূল্যায়ন যেগুলো আমার সিদ্ধান্তের অপেক্ষায়
+        if (accessService.isApprover() || AccessService.has('ROLE_ACCOUNTANT')) {
+            pending += expenseService.pendingCountForMe() + expenseService.payableClaims().size()
+        }
+        if (accessService.isApprover()) pending += performanceService.pendingReviewCount()
 
         // documents that expired or expire within 30 days (HR / Admin only)
         List expiring = []

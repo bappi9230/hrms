@@ -27,6 +27,7 @@ class BootStrap {
             seedPayroll()
             seedPayrollDay6()
             seedRecruitment()
+            seedDay8()
             leaveService.syncStatus()
             salaryService.syncProfileSalaries()
         }
@@ -359,6 +360,127 @@ class BootStrap {
         new JobOffer(candidate: cands['Mahfuz Alam'], department: it1, designation: dev, branch: head, employeeType: 'FULL_TIME', salary: 60000,
                 joinDate: today.plusDays(14), probationMonths: 3, validUntil: today.plusDays(7), status: 'ACCEPTED', offeredBy: 'hr',
                 decidedAt: now.minusDays(1), decisionNote: 'প্রার্থী ফোনে গ্রহণ করেছেন').save(failOnError: true)
+    }
+
+    // ------------------------------------------------------------------ Day 8: পারফরম্যান্স, প্রশিক্ষণ, খরচ/ভ্রমণ, সম্পদ, সুবিধা
+    private void seedDay8() {
+        LocalDate today = LocalDate.now(AttendanceService.ZONE)
+        LocalDateTime now = LocalDateTime.now(AttendanceService.ZONE)
+        Employee rahim = Employee.findByEmail('rahim@example.com')
+        Employee karim = Employee.findByEmail('karim@example.com')
+        Employee sumaiya = Employee.findByEmail('sumaiya@example.com')
+        Employee nasrin = Employee.findByEmail('nasrin@example.com')
+        if (!rahim || !karim || !sumaiya || !nasrin) return
+        int year = today.year
+
+        // ---- লক্ষ্য ও মূল্যায়ন চক্র
+        if (AppraisalCycle.count() == 0) {
+            AppraisalCycle open = new AppraisalCycle(name: "${year} বার্ষিক মূল্যায়ন".toString(), startDate: LocalDate.of(year, 1, 1), endDate: LocalDate.of(year, 12, 31),
+                    dueDate: LocalDate.of(year + 1, 1, 15), status: 'OPEN', createdBy: 'hr').save(failOnError: true)
+            new AppraisalCycle(name: "${year + 1} বার্ষিক মূল্যায়ন".toString(), startDate: LocalDate.of(year + 1, 1, 1), endDate: LocalDate.of(year + 1, 12, 31),
+                    dueDate: LocalDate.of(year + 2, 1, 15), status: 'DRAFT', createdBy: 'hr').save(failOnError: true)
+
+            [[rahim, 'রিলিজ সাইকেল সময়মতো শেষ করা', 12, 9, 'টি', 40, 'karim'],
+             [rahim, 'কোড রিভিউ কভারেজ', 100, 60, '%', 30, 'karim'],
+             [rahim, 'নতুন কর্মীকে মেন্টরিং', 4, 4, 'সেশন', 30, 'rahim'],
+             [karim, 'টিমের স্প্রিন্ট ভেলোসিটি বৃদ্ধি', 100, 70, '%', 60, 'karim'],
+             [karim, 'দুইজন নতুন ডেভেলপার নিয়োগ', 2, 1, 'জন', 40, 'karim'],
+             [sumaiya, 'মাসিক ক্লোজিং ৫ দিনে শেষ', 12, 10, 'মাস', 100, 'sumaiya']].each { r ->
+                BigDecimal target = r[2] as BigDecimal
+                BigDecimal cur = r[3] as BigDecimal
+                new Goal(employee: r[0] as Employee, title: r[1] as String, targetValue: target, currentValue: cur, unit: r[4] as String,
+                        weight: r[5] as Integer, dueDate: LocalDate.of(year, 12, 15), status: cur >= target ? 'COMPLETED' : 'ACTIVE',
+                        createdBy: r[6] as String).save(failOnError: true)
+            }
+
+            // রহিম: নিজের মূল্যায়ন জমা (ম্যানেজারের পালা), সুমাইয়া: সম্পন্ন, বাকিরা: নিজের পালা
+            new Appraisal(cycle: open, employee: rahim, reviewer: karim, status: 'PENDING_MANAGER', selfRating: 4,
+                    selfComment: 'এ বছর দুটি বড় রিলিজ সময়মতো দিয়েছি এবং একজন নতুন সহকর্মীকে মেন্টর করেছি।',
+                    selfSubmittedAt: now.minusDays(3)).save(failOnError: true)
+            new Appraisal(cycle: open, employee: sumaiya, reviewer: karim, status: 'COMPLETED', selfRating: 4,
+                    selfComment: 'মাসিক ক্লোজিং নিয়মিত ও নির্ভুল রেখেছি।', selfSubmittedAt: now.minusDays(9),
+                    managerRating: 4, managerComment: 'নির্ভরযোগ্য ও সময়নিষ্ঠ।', goalScore: 83.0, managerSubmittedAt: now.minusDays(6), reviewedBy: 'manager').save(failOnError: true)
+            new Appraisal(cycle: open, employee: nasrin, reviewer: karim, status: 'PENDING_SELF').save(failOnError: true)
+            new Appraisal(cycle: open, employee: karim, status: 'PENDING_SELF').save(failOnError: true)
+        }
+
+        // ---- প্রশিক্ষণ
+        if (Course.count() == 0) {
+            Course ended = new Course(title: 'অফিস নিরাপত্তা ও কমপ্লায়েন্স', description: 'অগ্নি নিরাপত্তা, তথ্য সুরক্ষা ও আচরণবিধি।', category: 'COMPLIANCE',
+                    trainer: 'মো. আনিসুর রহমান', trainingMode: 'CLASSROOM', location: 'Training Room', startDate: today.minusDays(30), endDate: today.minusDays(29),
+                    hours: 6, capacity: 30, createdBy: 'hr').save(failOnError: true)
+            Course running = new Course(title: 'Effective Communication', description: 'লিখিত ও মৌখিক যোগাযোগের কৌশল।', category: 'SOFT_SKILL',
+                    trainer: 'Farzana Karim', trainingMode: 'ONLINE', location: 'Google Meet', startDate: today.minusDays(1), endDate: today.plusDays(2),
+                    hours: 12, capacity: 20, createdBy: 'hr').save(failOnError: true)
+            Course upcoming = new Course(title: 'Grails ও Spring Boot ওয়ার্কশপ', description: 'REST API, GORM ও সিকিউরিটি হাতেকলমে।', category: 'TECHNICAL',
+                    trainer: 'Tanvir Ahmed', trainingMode: 'WORKSHOP', location: 'Head Office, Room 3', startDate: today.plusDays(10), endDate: today.plusDays(11),
+                    hours: 16, capacity: 2, createdBy: 'hr').save(failOnError: true)
+            new Course(title: 'ম্যানেজারদের জন্য নেতৃত্ব কর্মসূচি', category: 'LEADERSHIP', trainer: 'Dr. S. Chowdhury', trainingMode: 'CLASSROOM',
+                    location: 'Training Room', startDate: today.plusDays(25), endDate: today.plusDays(27), hours: 24, capacity: 0, createdBy: 'hr').save(failOnError: true)
+
+            TrainingEnrollment done = new TrainingEnrollment(course: ended, employee: nasrin, status: 'COMPLETED', score: 88,
+                    completedDate: today.minusDays(29), enrolledBy: 'hr').save(failOnError: true, flush: true)
+            done.certificateNo = "CERT-${today.minusDays(29).year}-${String.format('%05d', done.id)}".toString()
+            done.save(failOnError: true)
+            new TrainingEnrollment(course: ended, employee: rahim, status: 'FAILED', score: 41, completedDate: today.minusDays(29), enrolledBy: 'hr').save(failOnError: true)
+            new TrainingEnrollment(course: running, employee: rahim, enrolledBy: 'employee').save(failOnError: true)
+            new TrainingEnrollment(course: running, employee: karim, enrolledBy: 'manager').save(failOnError: true)
+            new TrainingEnrollment(course: upcoming, employee: rahim, enrolledBy: 'employee').save(failOnError: true)   // ২ আসনের ১টি ভরা
+        }
+
+        // ---- ভ্রমণ ও খরচ
+        if (TravelRequest.count() == 0) {
+            TravelRequest trip = new TravelRequest(employee: rahim, destination: 'Chattogram', purpose: 'ক্লায়েন্ট সাইটে সিস্টেম ডেপ্লয়মেন্ট', fromDate: today.minusDays(12),
+                    toDate: today.minusDays(10), travelMode: 'TRAIN', estimatedCost: 6000, status: 'APPROVED', decidedBy: 'manager', decidedAt: now.minusDays(15),
+                    decisionNote: 'অনুমোদিত').save(failOnError: true)
+            new TravelRequest(employee: rahim, destination: 'Sylhet', purpose: 'বিক্রেতার সাথে বৈঠক', fromDate: today.plusDays(8), toDate: today.plusDays(9),
+                    travelMode: 'BUS', estimatedCost: 4500, status: 'PENDING').save(failOnError: true)
+            new TravelRequest(employee: karim, destination: 'Cox\'s Bazar', purpose: 'বার্ষিক কৌশল সম্মেলন', fromDate: today.plusDays(20), toDate: today.plusDays(22),
+                    travelMode: 'AIR', estimatedCost: 25000, status: 'PENDING').save(failOnError: true)
+
+            if (ExpenseClaim.count() == 0) {
+                new ExpenseClaim(employee: rahim, travel: trip, category: 'TRANSPORT', title: 'Chattogram ট্রেন ভাড়া (আসা-যাওয়া)', expenseDate: today.minusDays(12), amount: 480,
+                        status: 'PENDING_MANAGER').save(failOnError: true)
+                new ExpenseClaim(employee: rahim, travel: trip, category: 'FOOD', title: 'ভ্রমণকালীন খাবার', expenseDate: today.minusDays(11), amount: 450,
+                        status: 'PENDING_ACCOUNTS', managerBy: 'manager', managerAt: now.minusDays(8), managerNote: 'ঠিক আছে').save(failOnError: true)
+                new ExpenseClaim(employee: karim, category: 'COMMUNICATION', title: 'মাসিক ইন্টারনেট বিল', expenseDate: today.minusDays(5), amount: 500,
+                        status: 'PENDING_ACCOUNTS').save(failOnError: true)
+                new ExpenseClaim(employee: sumaiya, category: 'OFFICE_SUPPLIES', title: 'ফাইল ও স্টেশনারি', expenseDate: today.minusDays(20), amount: 320,
+                        status: 'PAID', accountsBy: 'admin', accountsAt: now.minusDays(17), paidBy: 'admin', paidDate: today.minusDays(15), paymentRef: 'BKASH-TX-88213').save(failOnError: true)
+                new ExpenseClaim(employee: nasrin, category: 'FOOD', title: 'ইন্টারভিউ প্যানেলের নাস্তা', expenseDate: today.minusDays(9), amount: 400,
+                        status: 'REJECTED', managerBy: 'manager', managerAt: now.minusDays(7), managerNote: 'রসিদ ছাড়া গ্রহণযোগ্য নয়').save(failOnError: true)
+            }
+        }
+
+        // ---- সম্পদ রেজিস্টার (Nasrin এর ল্যাপটপ Day 7 এর বরাদ্দের সাথে যুক্ত)
+        if (Asset.count() == 0) {
+            Asset lap = new Asset(assetTag: 'AST-0001', assetType: 'LAPTOP', name: 'Dell Latitude 5440', serialNo: 'DL-5440-0007', purchaseDate: today.minusMonths(14),
+                    purchaseCost: 98000, status: 'ASSIGNED').save(failOnError: true)
+            AssetAllocation al = AssetAllocation.findBySerialNo('DL-5440-0007')
+            if (al) { al.asset = lap; al.save(failOnError: true) } else lap.status = 'AVAILABLE'
+            new Asset(assetTag: 'AST-0002', assetType: 'LAPTOP', name: 'Lenovo ThinkPad E14', serialNo: 'LN-E14-1182', purchaseDate: today.minusMonths(5), purchaseCost: 85000).save(failOnError: true)
+            new Asset(assetTag: 'AST-0003', assetType: 'MONITOR', name: 'Dell 24" P2422H', serialNo: 'DL-P24-5531', purchaseDate: today.minusMonths(9), purchaseCost: 22000).save(failOnError: true)
+            new Asset(assetTag: 'AST-0004', assetType: 'PHONE', name: 'Samsung Galaxy A34', serialNo: 'SM-A34-9902', purchaseDate: today.minusMonths(11), purchaseCost: 38000,
+                    status: 'MAINTENANCE', remarks: 'স্ক্রিন মেরামতে আছে').save(failOnError: true)
+            new Asset(assetTag: 'AST-0005', assetType: 'DESKTOP', name: 'HP ProDesk 400', serialNo: 'HP-PD4-2007', purchaseDate: today.minusYears(5), purchaseCost: 55000,
+                    status: 'RETIRED', remarks: 'পুরনো, বাতিল').save(failOnError: true)
+        }
+
+        // ---- সুবিধা
+        if (BenefitPlan.count() == 0) {
+            BenefitPlan health = new BenefitPlan(name: 'স্বাস্থ্য বীমা', benefitType: 'HEALTH_INSURANCE', provider: 'Green Delta Insurance', monthlyValue: 1500,
+                    minServiceMonths: 3, description: 'কর্মীর জন্য বার্ষিক ২ লক্ষ ৳ পর্যন্ত হাসপাতাল খরচ।').save(failOnError: true)
+            BenefitPlan mobile = new BenefitPlan(name: 'মোবাইল বিল সহায়তা', benefitType: 'MOBILE', provider: 'Grameenphone', monthlyValue: 500,
+                    minServiceMonths: 0).save(failOnError: true)
+            new BenefitPlan(name: 'যাতায়াত ভাতা', benefitType: 'TRANSPORT', monthlyValue: 2000, minServiceMonths: 6,
+                    description: 'অফিসে আসা-যাওয়ার জন্য মাসিক ভাতা।').save(failOnError: true)
+            new BenefitPlan(name: 'জীবন বীমা', benefitType: 'LIFE_INSURANCE', provider: 'MetLife', monthlyValue: 800, minServiceMonths: 12, active: false).save(failOnError: true)
+            [[health, rahim], [health, karim], [health, sumaiya], [mobile, karim], [mobile, rahim]].each { row ->
+                Employee e = row[1] as Employee
+                new BenefitEnrollment(plan: row[0] as BenefitPlan, employee: e, startDate: e.joinDate.plusMonths(3).isAfter(today) ? e.joinDate : e.joinDate.plusMonths(3),
+                        enrolledBy: 'hr').save(failOnError: true)
+            }
+        }
     }
 
     private void seedLastMonthActivity() {
