@@ -28,6 +28,7 @@ class BootStrap {
             seedPayrollDay6()
             seedRecruitment()
             seedDay8()
+            seedDay9()
             leaveService.syncStatus()
             salaryService.syncProfileSalaries()
         }
@@ -480,6 +481,71 @@ class BootStrap {
                 new BenefitEnrollment(plan: row[0] as BenefitPlan, employee: e, startDate: e.joinDate.plusMonths(3).isAfter(today) ? e.joinDate : e.joinDate.plusMonths(3),
                         enrolledBy: 'hr').save(failOnError: true)
             }
+        }
+    }
+
+    // ------------------------------------------------------------------ Day 9: চাকরি ছাড়া, কর্মী সম্পর্ক, ঘোষণা, নোটিফিকেশন
+    private void seedDay9() {
+        LocalDate today = LocalDate.now(AttendanceService.ZONE)
+        LocalDateTime now = LocalDateTime.now(AttendanceService.ZONE)
+        Employee rahim = Employee.findByEmail('rahim@example.com')
+        Employee karim = Employee.findByEmail('karim@example.com')
+        if (!rahim || !karim) return
+
+        if (Announcement.count() == 0) {
+            new Announcement(title: 'অফিস সময়সূচি ও ছুটির নীতিমালা হালনাগাদ', body: 'নতুন ছুটির নীতিমালা এই মাস থেকে কার্যকর। বিস্তারিত জানতে HR এর সাথে যোগাযোগ করুন।',
+                    category: 'POLICY', pinned: true, publishDate: today.minusDays(3), postedBy: 'hr').save(failOnError: true)
+            new Announcement(title: 'বার্ষিক মিলনমেলা', body: 'আগামী মাসের শেষ শুক্রবার কোম্পানির বার্ষিক মিলনমেলা অনুষ্ঠিত হবে। সবাইকে আমন্ত্রণ।',
+                    category: 'EVENT', publishDate: today.minusDays(1), expiryDate: today.plusDays(30), postedBy: 'hr').save(failOnError: true)
+            new Announcement(title: 'বেতন প্রতি মাসের ৫ তারিখের মধ্যে', body: 'মাসিক বেতন প্রতি মাসের ৫ তারিখের মধ্যে ব্যাংকে পাঠানো হবে।',
+                    category: 'GENERAL', publishDate: today.minusDays(10), postedBy: 'admin').save(failOnError: true)
+        }
+
+        // একজন সাবেক কর্মী: সম্পন্ন চাকরি-ছাড়া (ক্লিয়ারেন্স ও নিষ্পত্তি পরিশোধিত)
+        if (Separation.count() == 0) {
+            Employee ex = new Employee(name: 'Tariq Mahmud', email: 'tariq@example.com', phone: '01555555555', joinDate: today.minusYears(4), salary: 48000, status: 'INACTIVE',
+                    department: rahim.department, designation: rahim.designation, reportingManager: karim, employeeType: 'FULL_TIME').save(failOnError: true)
+            LocalDate lwd = today.minusDays(30)
+            Separation sep = new Separation(employee: ex, exitType: 'RESIGNATION', reasonCategory: 'BETTER_OPPORTUNITY', reason: 'অন্য প্রতিষ্ঠানে ভালো সুযোগ পেয়েছি।',
+                    noticeDate: lwd.minusDays(30), requestedLastDay: lwd, lastWorkingDay: lwd, noticeDays: 30, status: 'COMPLETED', initiatedBy: 'employee',
+                    managerBy: 'manager', managerAt: now.minusDays(58), hrBy: 'hr', hrAt: now.minusDays(57), exitInterviewNote: 'সৌহার্দ্যপূর্ণ বিদায়।',
+                    letterNo: "REL-${lwd.year}-00001".toString(), completedBy: 'hr', completedAt: now.minusDays(29)).save(failOnError: true)
+            int order = 0
+            OffboardingService.CLEARANCE_TEMPLATE.each { List<String> t ->
+                new ClearanceItem(separation: sep, title: t[0], ownerRole: t[1], sortOrder: order++, done: true, doneBy: 'hr', doneAt: now.minusDays(31)).save(failOnError: true)
+            }
+            new FinalSettlement(separation: sep, employee: ex, basic: 28800, gross: 48000, salaryDays: 0, unpaidSalary: 0, leaveDays: 6, leaveEncashment: 9600,
+                    serviceYears: 4, gratuity: 115200, netPayable: 124800, status: 'PAID', preparedBy: 'hr', preparedAt: now.minusDays(35), approvedBy: 'admin', approvedAt: now.minusDays(33),
+                    paidBy: 'admin', paidDate: today.minusDays(31), paymentRef: 'CHQ-004512', notes: 'নমুনা (Day 9 seed)').save(failOnError: true)
+        }
+
+        // শৃঙ্খলা: রহিমের নামে কারণ দর্শানো (জবাবের অপেক্ষায়)
+        if (DisciplinaryCase.count() == 0) {
+            new DisciplinaryCase(employee: rahim, caseType: 'SHOW_CAUSE', incidentDate: today.minusDays(4), subject: 'টানা তিন দিন দেরিতে অফিসে আসা',
+                    description: 'গত সপ্তাহে টানা তিন দিন নির্ধারিত সময়ের ৪৫ মিনিট পরে অফিসে এসেছেন। কারণ জানানোর অনুরোধ।', raisedBy: 'manager').save(failOnError: true)
+        }
+
+        // অভিযোগ: রহিমের একটি চালু অভিযোগ + একটি মন্তব্য
+        if (Grievance.count() == 0) {
+            Grievance gr = new Grievance(employee: rahim, category: 'FACILITY', subject: 'অফিসের এসি কাজ করছে না',
+                    description: 'তৃতীয় তলার ডেভেলপার রুমের এসি এক সপ্তাহ ধরে নষ্ট; কাজ করতে অসুবিধা হচ্ছে।').save(failOnError: true)
+            new GrievanceNote(grievance: gr, author: 'employee', fromHr: false, note: 'দয়া করে দ্রুত দেখবেন।').save(failOnError: true)
+        }
+
+        // অডিট ও নোটিফিকেশন
+        if (AuditLog.count() == 0) {
+            new AuditLog(actor: 'hr', action: 'ANNOUNCEMENT_POSTED', entityType: 'Announcement', summary: 'নমুনা ঘোষণা (seed)').save(failOnError: true)
+            new AuditLog(actor: 'manager', action: 'DISCIPLINE_RAISED', entityType: 'DisciplinaryCase', summary: 'Rahim Uddin: SHOW_CAUSE').save(failOnError: true)
+            new AuditLog(actor: 'employee', action: 'GRIEVANCE_SUBMITTED', entityType: 'Grievance', summary: 'FACILITY').save(failOnError: true)
+        }
+        if (Notification.count() == 0) {
+            User emp = User.findByUsername('employee')
+            User hr = User.findByUsername('hr')
+            if (emp) {
+                new Notification(user: emp, title: 'শৃঙ্খলা সংক্রান্ত নোটিস', message: 'টানা তিন দিন দেরিতে অফিসে আসা', link: '/discipline/show/1', type: 'WARNING').save(failOnError: true)
+                new Notification(user: emp, title: 'নতুন ঘোষণা: বার্ষিক মিলনমেলা', message: 'সবাইকে আমন্ত্রণ।', link: '/announcement', type: 'INFO').save(failOnError: true)
+            }
+            if (hr) new Notification(user: hr, title: 'নতুন অভিযোগ', message: 'অফিসের এসি কাজ করছে না', link: '/grievance/show/1', type: 'APPROVAL').save(failOnError: true)
         }
     }
 
